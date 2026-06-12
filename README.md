@@ -2,9 +2,9 @@
 
 > **Nosy by nature. Forensic by design.**
 
-![npm](https://img.shields.io/npm/v/kepo?color=cyan&label=npm%20install%20kepo)
-![node-current](https://img.shields.io/node/v/kepo?color=green)
-![license](https://img.shields.io/npm/l/kepo)
+![npm](https://img.shields.io/npm/v/kepo?color=cyan&label=npm%20install%20kepoin)
+![node-current](https://img.shields.io/node/v/kepoin?color=green)
+![license](https://img.shields.io/npm/l/kepoin)
 
 **kepo** is a zero-configuration, universal telemetry and forensic diagnostics library for Node.js. 
 
