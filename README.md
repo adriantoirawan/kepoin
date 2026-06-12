@@ -1,4 +1,4 @@
-# 🕵️ kepoin (The Obsessively Verbose Event Recorder)
+# 🕵️ kepoin
 
 > **Nosy by nature. Forensic by design. Obsessively verbose event recording for modern applications.**
 
