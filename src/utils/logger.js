@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { getConfig } from './config.js';
 import { sanitize } from '../core/sanitizer.js';
 
@@ -73,6 +74,25 @@ export function logEvent(payload) {
   // Pass payload through the dynamic redaction engine
   const safePayload = sanitize(payload);
 
+  if (config.isHeadless) {
+    if (process.send) {
+      const payloadStr = JSON.stringify(safePayload);
+      if (payloadStr.length > 50000) {
+        const compressed = zlib.deflateSync(payloadStr).toString('base64');
+        process.send({
+          type: 'kepoin:compressed',
+          originalType: 'kepoin:telemetry',
+          encoding: 'deflate',
+          data: compressed
+        });
+      } else {
+        process.send({ type: 'kepoin:telemetry', payload: safePayload });
+      }
+    }
+    // Strict bypass: Never print to stdout in headless mode
+    return;
+  }
+
   if (writeStream) {
     // Pipe as NDJSON
     const jsonl = JSON.stringify(safePayload) + '\n';
@@ -98,6 +118,24 @@ export function emergencySyncFlush(payload) {
   }
 
   const safePayload = sanitize(payload, 6); // Hardcode deeper depth for autopsies
+
+  if (config.isHeadless) {
+    if (process.send) {
+      const payloadStr = JSON.stringify(safePayload);
+      if (payloadStr.length > 50000) {
+        const compressed = zlib.deflateSync(payloadStr).toString('base64');
+        process.send({
+          type: 'kepoin:compressed',
+          originalType: 'kepoin:crash',
+          encoding: 'deflate',
+          data: compressed
+        });
+      } else {
+        process.send({ type: 'kepoin:crash', payload: safePayload });
+      }
+    }
+    return;
+  }
 
   if (resolvedOutFile) {
     const jsonl = JSON.stringify(safePayload) + '\n';

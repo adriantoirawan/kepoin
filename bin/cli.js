@@ -32,6 +32,7 @@ function printHelp() {
 
 \x1b[1mUSAGE\x1b[0m
   $ kepoin [options] <script.js>
+  $ kepoin listen [--headless]  \x1b[90m# Start the Centralized Telemetry Hub for Mobile/Browser\x1b[0m
 
 \x1b[1mOPTIONS\x1b[0m
   --out=<file>      Stream logs to an NDJSON file (e.g., trace.jsonl)
@@ -41,6 +42,8 @@ function printHelp() {
   --redact=<keys>   Comma-separated list of extra keys to redact (e.g., "ssn,api_key").
   --verbose         Print diagnostic internal kepoin logs.
   --disable         Hard kill switch. Bypasses all tracing with 0% performance penalty.
+  --headless        (Hub Mode) Suppress terminal output and stream telemetry via process.send().
+  --ws-port=<port>  (Hub Mode) Port for the WebSocket server (default: 54321).
   --examples        List interactive examples bundled with kepoin.
   --init-examples   Copy interactive examples to ./kepoin-examples/ in your current directory.
   -h, --help        Show this help message.
@@ -135,7 +138,7 @@ if (args.includes('-v') || args.includes('--version')) {
   process.exit(0);
 }
 
-const KEPOIN_FLAGS = ['--out', '--format', '--slow', '--max-depth', '--redact', '--verbose', '--disable', '--examples', '--init-examples', '--help', '--version', '-h', '-v'];
+const KEPOIN_FLAGS = ['--out', '--format', '--slow', '--max-depth', '--redact', '--verbose', '--disable', '--headless', '--ws-port', '--examples', '--init-examples', '--help', '--version', '-h', '-v'];
 
 function levenshtein(a, b) {
   const matrix = [];
@@ -200,6 +203,20 @@ for (let i = 0; i < args.length; i++) {
       providedKepoinFlags.push(arg);
       continue;
     }
+    if (arg === '--headless') {
+      envVars.KEPOIN_HEADLESS = 'true';
+      providedKepoinFlags.push(arg);
+      continue;
+    }
+    if (arg.startsWith('--ws-port=')) {
+      envVars.KEPOIN_WS_PORT = arg.split('=')[1];
+      providedKepoinFlags.push(arg);
+      continue;
+    }
+    
+    if (arg === 'listen' && i === 0) {
+      continue;
+    }
     
     // Strict Flag Parsing: check if it's an unrecognized flag
     if (arg.startsWith('-')) {
@@ -238,7 +255,7 @@ for (let i = 0; i < args.length; i++) {
   scriptArgs.push(arg);
 }
 
-if (scriptArgs.length === 0) {
+if (scriptArgs.length === 0 && args[0] !== 'listen') {
   // Empathic "Missing Script" Error Flow
   if (providedKepoinFlags.length > 0) {
     console.log(`\x1b[33m[kepoin:info]\x1b[0m Received flags: ${providedKepoinFlags.join(' ')}`);
@@ -261,6 +278,14 @@ if (envVars.KEPOIN_ENABLED !== 'false') {
 }
 
 const finalEnv = { ...process.env, ...envVars };
+
+if (args[0] === 'listen') {
+  // Start the Centralized Telemetry Hub
+  Object.assign(process.env, envVars);
+  import('../src/server/hub.js').then(({ startHub }) => {
+    startHub(finalEnv);
+  });
+} else {
 
 function isNewerVersion(latest, current) {
   const lParts = latest.split('.').map(Number);
@@ -299,26 +324,27 @@ if (process.stdout.isTTY && envVars.KEPOIN_ENABLED !== 'false' && !process.env.C
   updateReq.setTimeout(2000, () => updateReq.destroy());
 }
 
-// Spawn the child node process
-const child = spawn(process.execPath, [...nodeArgs, ...scriptArgs], {
-  stdio: 'inherit',
-  env: finalEnv,
-});
+  // Spawn the child node process
+  const child = spawn(process.execPath, [...nodeArgs, ...scriptArgs], {
+    stdio: 'inherit',
+    env: finalEnv,
+  });
 
-child.on('exit', (code, signal) => {
-  // If the script finished before the network check, silently abort the check
-  if (updateReq && !updateReq.destroyed) {
-    updateReq.destroy();
-  }
+  child.on('exit', (code, signal) => {
+    // If the script finished before the network check, silently abort the check
+    if (updateReq && !updateReq.destroyed) {
+      updateReq.destroy();
+    }
 
-  // If we found an update during the run, print it at the very bottom
-  if (updateMessage) {
-    console.log(updateMessage);
-  }
+    // If we found an update during the run, print it at the very bottom
+    if (updateMessage) {
+      console.log(updateMessage);
+    }
 
-  if (signal) {
-    process.kill(process.pid, signal);
-  } else {
-    process.exit(code || 0);
-  }
-});
+    if (signal) {
+      process.kill(process.pid, signal);
+    } else {
+      process.exit(code || 0);
+    }
+  });
+}
