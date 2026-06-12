@@ -17,7 +17,19 @@ npm install kepoin
 ```
 
 ## Step 3: Inject the Bridge
-Open your main entry file (e.g., `main.js`, `index.js`, or `App.vue`). Add the following lines:
+
+There are two ways to inject `kepoin`, depending on your web stack.
+
+### Method A: The Vanilla CDN (For Express, EJS, and plain HTML)
+If you are NOT using a bundler (Webpack/Vite), you can dynamically fetch the script directly from your running Hub! Just drop this `<script>` tag into the `<head>` of your `layout.ejs` or `index.html`:
+
+```html
+<script src="http://localhost:54321/kepoin.js"></script>
+```
+*That's it! It will automatically connect and activate the Phantom Snapshot engine.*
+
+### Method B: The Bundler (For React, Vue, Vite, Webpack)
+If you are using a modern frontend framework, import the modules at the top of your `main.js`:
 
 ```javascript
 import { initKepoinBrowser } from 'kepoin/browser';
