@@ -90,6 +90,9 @@ Do not mutate your source code. Inject `kepoin` via Node environment variables.
 NODE_OPTIONS="--require kepoin/register" npm run start
 ```
 
+> [!NOTE]
+> **The Module Boundary:** To maintain 0% performance overhead, `kepoin` operates by wrapping your `module.exports`. This means it only traces **exported functions** that are imported and called from **another file**. It does *not* trace local function calls executing internally within the same file.
+
 ### 3. Injecting into Frontend (React/Vue/Browser)
 If you use a bundler (Vite/Webpack), import the adapter at the very top of your `index.js` or `main.js`:
 ```javascript
