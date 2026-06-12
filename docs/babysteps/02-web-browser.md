@@ -59,3 +59,11 @@ If a **Tainted Canvas Security Exception** occurs:
 2. It intelligently abandons the Base64 image slice, but *still* transmits the raw HTML structure and CSS styling to your Hub terminal.
 
 *(Pro Tip: If `Alt+Shift+R` isn't doing anything, check your browser console! Some Linux window managers (like Ubuntu GNOME) hijack the `Alt` key. The console logs will instantly reveal if your OS is swallowing the shortcut!)*
+
+## ⚠️ Known Issue: Chrome Disk Caching
+When developing and testing `kepoin` updates locally via the Universal CDN (`<script src="http://localhost:54321/kepoin.js">`), Google Chrome may aggressively cache the script. 
+
+If you restart the Hub to load a newer version of `kepoin` but Chrome continues to behave like the old version (or fails to trigger shortcuts), **you must perform a Hard Reload** to bypass Chrome's memory cache.
+- **Mac:** `Cmd + Shift + R`
+- **Windows/Linux:** `Ctrl + Shift + R`
+*(Or simply check "Disable Cache" in the Chrome DevTools Network tab).*
