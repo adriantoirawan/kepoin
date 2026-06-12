@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "maxDepth": 5,
+  "redactKeys": ["super_secret", "aws_token"]
+  // Missing a comma here, making it corrupted JSON!
+  "verbose": true
+}

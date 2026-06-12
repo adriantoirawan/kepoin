@@ -14,13 +14,13 @@ It acts as a passive observability layer, utilizing advanced ES6 Proxies and eng
 
 ---
 
-## 🛡️ Security First: The Enterprise Promise
+## 🛡️ Security Measures
 
 Because `kepoin` recursively proxies and records function calls, arguments, and memory states, it requires the highest level of data security. **By default, `kepoin` is engineered to protect your sensitive data.**
 
 * **Dynamic Data Redaction:** `kepoin` utilizes an $O(1)$ key-based sanitization engine. It automatically detects and redacts sensitive keys (e.g., `password`, `token`, `authorization`, `stripe_key`) from your payloads *before* they are serialized to disk.
 * **Denial of Service (DoS) Protection:** To prevent massive objects (like raw HTTP requests) from hanging the V8 event loop, the sanitizer enforces a strict **Maximum Depth Limiter** and uses a `WeakSet` registry to safely bypass circular references.
-* **The Production Kill Switch (`KEPOIN_ENABLED`):** `kepoin` is strictly designed for local development, debugging, and secure staging environments. If deployed to production, setting `KEPOIN_ENABLED=false` acts as a zero-overhead hardware bypass. It aborts all proxy generation and hook registration, acting as a pure passthrough with **0% performance penalty**.
+* **The Production Kill Switch (`KEPOIN_ENABLED`):** `kepoin` is strictly designed for local development, debugging, and secure staging environments. If deployed to production, setting `KEPOIN_ENABLED=false` acts as a zero-overhead Hard kill switch. It aborts all proxy generation and hook registration, acting as a pure passthrough with **0% performance penalty**.
 
 ---
 
@@ -31,6 +31,8 @@ Because `kepoin` recursively proxies and records function calls, arguments, and 
 * **The Forensic Autopsy:** Automatically catches unhandled errors and prints a map of the crashed module's live memory state—showing exact types, static properties, and instance methods.
 * **Crash-Safe NDJSON Streaming:** Pipes execution traces to files asynchronously. If a fatal crash occurs, `kepoin` triggers an **Emergency Synchronous Flush** to guarantee your logs hit the disk before the process dies.
 * **Native-Safe Execution:** Safely unwraps internal V8 slots to prevent `Incompatible receiver` engine crashes when tracking native Promises, HTTP Parsers, and Streams.
+* **Universal CLI & Typo Safety:** The CLI dynamically extracts native Node.js flags, providing instantaneous passthrough support for 272+ flags (like `--inspect`). It intercepts typos with empathetic "Did you mean?" suggestions instead of crashing.
+* **Zero-Overhead Update Checker:** A detached, non-blocking background check ensures you always know when a new version is available. It silently aborts if your script finishes too quickly, guaranteeing **0% performance penalty** and zero event loop blocking.
 
 ---
 
@@ -54,6 +56,47 @@ npm install -g kepoin
 # OR install locally as a dev dependency
 npm install kepoin --save-dev
 ```
+
+## 📚 Comprehensive Documentation
+
+For a deep dive into `kepoin`'s architecture and capabilities, check out the official user guides:
+
+* [CLI & Configuration Guide](./docs/cli-and-configuration.md): Master the CLI flags and `kepoin.json`.
+* [The Forensic Autopsy](./docs/the-forensic-autopsy.md): Learn how to interpret the module cache dump during a crash.
+* [Security & Redaction](./docs/security-and-redaction.md): Understand the $O(1)$ sanitizer, WeakSet protection, and the Hard Kill Switch.
+
+---
+
+## 🚩 CLI Flags Reference
+
+| Flag | Description | Use Case |
+|---|---|---|
+| `--out=<file>` | Stream NDJSON logs to a file. | Ingesting traces into Datadog/Kibana. |
+| `--format=<fmt>` | Override output format (`ansi` or `json`). | Forcing JSON output in the terminal. |
+| `--slow=<ms>` | Threshold Tracing. | Isolating slow database queries. |
+| `--max-depth=<N>` | Object serialization depth (default: 4). | Deeply inspecting nested payloads. |
+| `--redact=<keys>` | Add custom keys to the scrub list. | Redacting proprietary API tokens. |
+| `--verbose` | Diagnostic mode. | Debugging which files kepoin is intercepting. |
+| `--disable` | The Hard Kill Switch. | Bypassing all tracing in production (0% overhead). |
+| `--examples` | List interactive examples. | Learning how to use the library. |
+| `--init-examples`| Extract examples to local project. | Bootstrapping the interactive sandbox. |
+
+---
+
+## 🎮 Interactive Tutorial Suite
+
+Want to see exactly how `kepoin` catches crashes, protects circular references, and redacts PII?
+
+Run the interactive examples wizard in your terminal:
+```bash
+# Safely copy the interactive examples into your current directory
+kepoin --init-examples
+
+# List the commands to run them!
+kepoin --examples
+```
+
+---
 
 ## 🚀 Usage Guide
 `kepoin` treats code cleanliness as a first-class feature. **You do not need to change your application code to use kepoin.**
@@ -107,6 +150,9 @@ const db = kepoin(new DatabaseService(), 'DatabaseService');
 // Every call to this specific instance will now be tracked, timed, and sanitized!
 await db.query('SELECT * FROM users'); 
 ```
+
+> [!WARNING]
+> **CommonJS Limitation:** Surgical manual tracing (`import { kepoin } from 'kepoin'`) currently requires Native ECMAScript Modules (ESM). In CommonJS (`require('kepoin')`), this API acts as a passive passthrough. CommonJS projects should rely on the zero-config CLI or `NODE_OPTIONS` injection instead.
 
 ### 🔍 Understanding the Autopsy
 When an unhandled exception occurs, `kepoin` generates an autopsy report showing the live state of your modules.
