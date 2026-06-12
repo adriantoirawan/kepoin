@@ -64,11 +64,20 @@ export function initPhantom({ url = 'ws://localhost:54321' } = {}) {
 
   // Option + Shift + R (Alt + Shift + R)
   window.addEventListener('keydown', (e) => {
+    // Debug log to trace OS level key interception
+    if (e.shiftKey && e.code === 'KeyR') {
+      console.log('[kepoin:phantom] Shift+R detected. altKey:', e.altKey);
+    }
+    
     if (e.altKey && e.shiftKey && e.code === 'KeyR') {
       e.preventDefault();
       
+      console.log('[kepoin:phantom] Triggering Snapshot...');
       const element = document.elementFromPoint(mouseX, mouseY);
-      if (!element) return;
+      if (!element) {
+        console.warn('[kepoin:phantom] No element found under cursor. Did you move the mouse?');
+        return;
+      }
 
       const domString = element.outerHTML.substring(0, 500) + (element.outerHTML.length > 500 ? '...' : '');
       const styles = extractComputedStyles(element);
@@ -89,13 +98,18 @@ export function initPhantom({ url = 'ws://localhost:54321' } = {}) {
       const urlBlob = URL.createObjectURL(svgBlob);
 
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = element.offsetWidth;
-        canvas.height = element.offsetHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        
-        const base64Image = canvas.toDataURL('image/jpeg', 0.5); // 50% quality to save bandwidth
+        let base64Image = '<Canvas Rendering Failed>';
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = element.offsetWidth;
+          canvas.height = element.offsetHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          base64Image = canvas.toDataURL('image/jpeg', 0.5); // 50% quality to save bandwidth
+        } catch (err) {
+          console.error('[kepoin:phantom] Canvas rendering blocked (Likely Tainted Canvas / CORS):', err.message);
+        }
+
         URL.revokeObjectURL(urlBlob);
 
         if (wsConnected && ws) {
@@ -110,6 +124,7 @@ export function initPhantom({ url = 'ws://localhost:54321' } = {}) {
               timestamp: new Date().toISOString()
             }
           }));
+          console.log('[kepoin:phantom] Snapshot beamed to Hub!');
         }
       };
 
