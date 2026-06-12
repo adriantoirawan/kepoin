@@ -1,6 +1,6 @@
-# 🕵️ kepoin (The Universal Socratic Engine)
+# 🕵️ kepoin (The Obsessively Verbose Event Recorder)
 
-> **Nosy by nature. Forensic by design. The invisible backbone of modern telemetry.**
+> **Nosy by nature. Forensic by design. Obsessively verbose event recording for modern applications.**
 
 ![npm](https://img.shields.io/npm/v/kepoin?color=cyan&label=npm%20install%20kepoin)
 ![node-current](https://img.shields.io/node/v/kepoin?color=green)
