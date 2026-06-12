@@ -45,15 +45,20 @@ function formatAnsi(payload) {
   const { location, status, message, duration, target, error } = payload;
   const timeStr = duration ? ` (+${duration.toFixed(2)}ms)` : '';
   
-  let prefix = `[${location}] `;
+  let prefix = `[${location || 'unknown'}] `;
   if (status === 'Executing') {
     prefix += `\x1b[36m▶ Executing:\x1b[0m ${target}`;
   } else if (status === 'Resolved') {
     prefix += `\x1b[32m✔ Resolved:\x1b[0m  ${target}${timeStr}`;
   } else if (status === 'Failed') {
     prefix += `\x1b[31m✖ Failed:\x1b[0m    ${target}${timeStr} - ${error || message}`;
+  } else if (status === 'Phantom Snapshot') {
+    prefix += `\x1b[35m📸 Phantom Snapshot:\x1b[0m <${target}>
+    \x1b[90m↳ DOM Length:\x1b[0m ${payload.domContext ? payload.domContext.length : 0} chars
+    \x1b[90m↳ CSS Length:\x1b[0m ${payload.cssContext ? Object.keys(payload.cssContext).length : 0} rules
+    \x1b[90m↳ Base64 Slice:\x1b[0m ${payload.imageSlice ? payload.imageSlice.substring(0, 50) + '... (' + payload.imageSlice.length + ' bytes)' : 'Missing'}`;
   } else {
-    prefix += `[${status}] ${message}`;
+    prefix += `[${status}] ${message || ''}`;
   }
 
   return prefix;

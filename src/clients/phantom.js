@@ -124,7 +124,9 @@ export function initPhantom({ url = 'ws://localhost:54321' } = {}) {
           ws.send(JSON.stringify({
             type: 'kepoin:telemetry',
             payload: {
+              location: 'kepoin/phantom',
               status: 'Phantom Snapshot',
+              message: 'Visual UI slice captured successfully.',
               target: element.tagName.toLowerCase(),
               domContext: domString,
               cssContext: styles,
