@@ -1,0 +1,26 @@
+{
+  "name": "@adriantoirawan/kepo",
+  "version": "0.0.1",
+  "description": "Zero-config forensic telemetry for Node.js. Automatically trace execution, benchmark performance, and generate memory autopsies on crash, without changing a line of your code.",
+  "homepage": "https://github.com/adriantoirawan/kepo#readme",
+  "bugs": {
+    "url": "https://github.com/adriantoirawan/kepo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adriantoirawan/kepo.git"
+  },
+  "license": "MIT",
+  "author": "Adrianto Puji Irawan",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "require": "./src/index.cjs"
+    }
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
