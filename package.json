@@ -1,6 +1,6 @@
 {
   "name": "kepoin",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Zero-config forensic telemetry for Node.js. Automatically trace execution, benchmark performance, and generate memory autopsies on crash, without changing a line of your code.",
   "homepage": "https://github.com/adriantoirawan/kepoin#readme",
   "bugs": {
