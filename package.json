@@ -1,23 +1,25 @@
 {
   "name": "kepoin",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Zero-config forensic telemetry for Node.js. Automatically trace execution, benchmark performance, and generate memory autopsies on crash, without changing a line of your code.",
-  "homepage": "https://github.com/adriantoirawan/kepoin#readme",
-  "bugs": {
-    "url": "https://github.com/adriantoirawan/kepoin/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/adriantoirawan/kepoin.git"
-  },
-  "license": "MIT",
-  "author": "Adrianto Puji Irawan",
   "type": "module",
+  "main": "./src/index.js",
+  "bin": {
+    "kepoin": "./bin/cli.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "src",
+    "bin"
+  ],
   "exports": {
     ".": {
       "import": "./src/index.js",
       "require": "./src/index.cjs"
-    },
+    }
+  },
   "keywords": [
     "telemetry",
     "observability",
@@ -28,10 +30,18 @@
     "instrumentation",
     "proxy",
     "crash-reporting"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adriantoirawan/kepoin.git"
   },
-  "main": "index.js",
+  "license": "MIT",
+  "author": "Adrianto Puji Irawan",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "homepage": "https://github.com/adriantoirawan/kepoin#readme",
+  "bugs": {
+    "url": "https://github.com/adriantoirawan/kepoin/issues"
   }
 }
