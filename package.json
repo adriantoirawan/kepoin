@@ -1,14 +1,14 @@
 {
-  "name": "@adriantoirawan/kepo",
+  "name": "kepoin",
   "version": "0.0.1",
   "description": "Zero-config forensic telemetry for Node.js. Automatically trace execution, benchmark performance, and generate memory autopsies on crash, without changing a line of your code.",
-  "homepage": "https://github.com/adriantoirawan/kepo#readme",
+  "homepage": "https://github.com/adriantoirawan/kepoin#readme",
   "bugs": {
-    "url": "https://github.com/adriantoirawan/kepo/issues"
+    "url": "https://github.com/adriantoirawan/kepoin/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/adriantoirawan/kepo.git"
+    "url": "git+https://github.com/adriantoirawan/kepoin.git"
   },
   "license": "MIT",
   "author": "Adrianto Puji Irawan",
