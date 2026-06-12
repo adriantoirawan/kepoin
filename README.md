@@ -2,7 +2,7 @@
 
 > **Nosy by nature. Forensic by design.**
 
-![npm](https://img.shields.io/npm/v/kepo?color=cyan&label=npm%20install%20kepoin)
+![npm](https://img.shields.io/npm/v/kepoin?color=cyan&label=npm%20install%20kepoin)
 ![node-current](https://img.shields.io/node/v/kepoin?color=green)
 ![license](https://img.shields.io/npm/l/kepoin)
 
