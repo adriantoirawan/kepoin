@@ -82,12 +82,16 @@ export function initPhantom({ url = 'ws://localhost:54321' } = {}) {
       const domString = element.outerHTML.substring(0, 500) + (element.outerHTML.length > 500 ? '...' : '');
       const styles = extractComputedStyles(element);
 
+      // SVG requires STRICT XML. HTML5 void tags (like <img> instead of <img/>) will break the SVG parser silently!
+      // We use XMLSerializer to guarantee perfectly well-formed XHTML.
+      const xhtmlString = new XMLSerializer().serializeToString(element);
+
       // Lightweight SVG ForeignObject -> Canvas -> Base64
       const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="${element.offsetWidth}" height="${element.offsetHeight}">
           <foreignObject width="100%" height="100%">
             <div xmlns="http://www.w3.org/1999/xhtml">
-              ${element.outerHTML}
+              ${xhtmlString}
             </div>
           </foreignObject>
         </svg>
@@ -96,6 +100,10 @@ export function initPhantom({ url = 'ws://localhost:54321' } = {}) {
       const img = new Image();
       const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
       const urlBlob = URL.createObjectURL(svgBlob);
+
+      img.onerror = (err) => {
+        console.error('[kepoin:phantom] SVG Engine crashed. The HTML could not be parsed into XML:', err);
+      };
 
       img.onload = () => {
         let base64Image = '<Canvas Rendering Failed>';
