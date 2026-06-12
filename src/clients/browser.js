@@ -14,7 +14,18 @@ export function initKepoinBrowser({ url = 'ws://localhost:54321' } = {}) {
   function connect() {
     try {
       ws = new WebSocket(url);
-      ws.onopen = () => { wsConnected = true; };
+      ws.onopen = () => { 
+        wsConnected = true; 
+        ws.send(JSON.stringify({
+          type: 'kepoin:telemetry',
+          payload: {
+            status: 'Resolved',
+            message: 'Universal Bridge connected successfully.',
+            location: 'kepoin/browser',
+            target: typeof window !== 'undefined' ? window.location.href : 'Unknown Client'
+          }
+        }));
+      };
       ws.onclose = () => { wsConnected = false; };
       ws.onerror = () => { wsConnected = false; };
     } catch (e) {

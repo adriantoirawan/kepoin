@@ -17,7 +17,18 @@ export function initPhantom({ url = 'ws://localhost:54321' } = {}) {
   function connect() {
     try {
       ws = new WebSocket(url);
-      ws.onopen = () => { wsConnected = true; };
+      ws.onopen = () => { 
+        wsConnected = true;
+        ws.send(JSON.stringify({
+          type: 'kepoin:telemetry',
+          payload: {
+            status: 'Resolved',
+            message: 'Phantom Snapshot Engine armed (Alt+Shift+R).',
+            location: 'kepoin/phantom',
+            target: typeof window !== 'undefined' ? window.location.href : 'Unknown Client'
+          }
+        }));
+      };
       ws.onclose = () => { wsConnected = false; };
       ws.onerror = () => { wsConnected = false; };
     } catch (e) {
@@ -53,7 +64,7 @@ export function initPhantom({ url = 'ws://localhost:54321' } = {}) {
 
   // Option + Shift + R (Alt + Shift + R)
   window.addEventListener('keydown', (e) => {
-    if (e.altKey && e.shiftKey && e.key.toLowerCase() === 'r') {
+    if (e.altKey && e.shiftKey && e.code === 'KeyR') {
       e.preventDefault();
       
       const element = document.elementFromPoint(mouseX, mouseY);

@@ -1,6 +1,6 @@
 {
   "name": "kepoin",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Zero-config forensic telemetry for Node.js. Automatically trace execution, benchmark performance, and generate memory autopsies on crash, without changing a line of your code.",
   "type": "module",
   "main": "./src/index.js",
@@ -23,7 +23,8 @@
     "./register": "./src/loaders/register.js",
     "./mobile": "./src/clients/mobile.js",
     "./browser": "./src/clients/browser.js",
-    "./phantom": "./src/clients/phantom.js"
+    "./phantom": "./src/clients/phantom.js",
+    "./dashcam": "./src/core/dashcam.js"
   },
   "keywords": [
     "telemetry",
