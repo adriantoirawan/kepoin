@@ -12,6 +12,8 @@ Originally built as a standalone terminal logger to replace `console.log`, `kepo
 
 **No messy `console.log` statements. No complex APM setup. Zero mutations to your business logic.**
 
+When you run `kepoin`, our **Time-Capped Asynchronous Bootloader** fires up instantly, painting a gorgeous ASCII diagnostic banner while checking for updates without *ever* delaying your application's start time.
+
 ---
 
 ## 🌟 Key Features
@@ -26,9 +28,10 @@ Standard Node.js crash traces tell you *where* the app died. `kepoin` tells you 
 By booting with `--require kepoin/register`, our engine programmatically hooks into `node:inspector` upon crashing, safely dumping the **local variables and lexical scope** mapped to the exact line of failure.
 
 ### 3. Universal Frontend Bridges (Mobile & Web)
-We provide import-safe, zero-config hooks that intercept unhandled exceptions before frameworks swallow them:
+We provide import-safe, zero-config hooks that intercept unhandled exceptions before frameworks swallow them. Whether you use a heavy Webpack bundler or write pure Vanilla HTML, we've got you covered:
 * **`import 'kepoin/mobile'`**: Natively binds to JavaScriptCore/Hermes `global.ErrorUtils` for React Native & Expo.
 * **`import 'kepoin/browser'`**: Captures `window.onerror`, React `ErrorBoundary`, and Vue's `app.config.errorHandler`.
+* **The Universal CDN**: Not using a bundler? Simply drop `<script src="http://localhost:54321/kepoin.js"></script>` into your EJS or HTML file. The Hub dynamically strips ES modules and beams the fully armed telemetry payload straight to your browser.
 
 ### 4. The Phantom Snapshot (Multimodal UI Slicer)
 Visual CSS/layout bugs don't throw console exceptions. To give your debugging AI "eyes", trigger `Option+Shift+R` in the browser bridge. The Phantom Engine serializes the exact DOM node under the cursor, extracts computed CSS styles, and generates a massive, Zlib-compressed Base64 Canvas Payload directly over WebSocket without any heavy Playwright automation.
@@ -88,12 +91,16 @@ NODE_OPTIONS="--require kepoin/register" npm run start
 ```
 
 ### 3. Injecting into Frontend (React/Vue/Browser)
-Import the adapter at the very top of your `index.js` or `main.js`:
+If you use a bundler (Vite/Webpack), import the adapter at the very top of your `index.js` or `main.js`:
 ```javascript
 import { initKepoinBrowser } from 'kepoin/browser';
 
 // Starts interception and connects to the local Hub!
 initKepoinBrowser();
+```
+If you are writing pure Vanilla HTML, Express, or EJS, bypass the bundler entirely by dropping this into your `<head>`:
+```html
+<script src="http://localhost:54321/kepoin.js"></script>
 ```
 
 ### 4. Injecting into Mobile (React Native/Expo)

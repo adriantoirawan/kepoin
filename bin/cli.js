@@ -278,14 +278,7 @@ if (envVars.KEPOIN_ENABLED !== 'false') {
 }
 
 const finalEnv = { ...process.env, ...envVars };
-
-if (args[0] === 'listen') {
-  // Start the Centralized Telemetry Hub
-  Object.assign(process.env, envVars);
-  import('../src/server/hub.js').then(({ startHub }) => {
-    startHub(finalEnv);
-  });
-} else {
+const isHeadless = envVars.KEPOIN_HEADLESS === 'true';
 
 function isNewerVersion(latest, current) {
   const lParts = latest.split('.').map(Number);
@@ -297,54 +290,92 @@ function isNewerVersion(latest, current) {
   return false;
 }
 
-let updateMessage = null;
-let updateReq = null;
-
-// Zero-overhead Update Checker
-if (process.stdout.isTTY && envVars.KEPOIN_ENABLED !== 'false' && !process.env.CI) {
-  updateReq = https.get('https://registry.npmjs.org/kepoin/latest', (res) => {
-    if (res.statusCode === 200) {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const latest = JSON.parse(data).version;
-          const current = getPkgInfo().version;
-          if (latest && current && isNewerVersion(latest, current)) {
-             updateMessage = `\n\x1b[33m[kepoin:update]\x1b[0m A new version of kepoin is available! \x1b[31m${current}\x1b[0m ➔ \x1b[32m${latest}\x1b[0m\n\x1b[33m[kepoin:update]\x1b[0m Run \x1b[1mnpm install -g kepoin\x1b[0m to update.`;
-          }
-        } catch (e) {}
-      });
-    }
-  }).on('error', () => {
-    // Silently ignore offline or network errors
-  });
+async function fetchLatestVersion() {
+  if (!process.stdout.isTTY || envVars.KEPOIN_ENABLED === 'false' || process.env.CI || isHeadless) {
+    return null;
+  }
   
-  // Hard abort after 2 seconds to ensure we never hang the process
-  updateReq.setTimeout(2000, () => updateReq.destroy());
+  return new Promise((resolve) => {
+    const req = https.get('https://registry.npmjs.org/kepoin/latest', (res) => {
+      if (res.statusCode === 200) {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const latest = JSON.parse(data).version;
+            const current = getPkgInfo().version;
+            if (latest && current && isNewerVersion(latest, current)) {
+               resolve(`\x1b[33m[kepoin:update]\x1b[0m A new version is available! \x1b[31m${current}\x1b[0m ➔ \x1b[32m${latest}\x1b[0m (Run \x1b[1mnpm i -g kepoin\x1b[0m)`);
+            } else {
+               resolve(null);
+            }
+          } catch (e) {
+            resolve(null);
+          }
+        });
+      } else {
+        resolve(null);
+      }
+    }).on('error', () => resolve(null));
+    
+    // Strict 500ms timeout
+    setTimeout(() => {
+      req.destroy();
+      resolve(null);
+    }, 500);
+  });
 }
 
-  // Spawn the child node process
-  const child = spawn(process.execPath, [...nodeArgs, ...scriptArgs], {
-    stdio: 'inherit',
-    env: finalEnv,
-  });
+function printBanner(updateMessage) {
+  if (isHeadless) return;
+  
+  const pkg = getPkgInfo();
+  console.log(`\x1b[36m┌────────────────────────────────────────────────────────┐`);
+  console.log(`│  🕵️  \x1b[1mkepoin (v${pkg.version})\x1b[0m\x1b[36m                                     │`);
+  console.log(`│  Nosy by nature. Forensic by design.                   │`);
+  console.log(`└────────────────────────────────────────────────────────┘\x1b[0m`);
+  
+  if (updateMessage) {
+    console.log(updateMessage);
+  }
 
-  child.on('exit', (code, signal) => {
-    // If the script finished before the network check, silently abort the check
-    if (updateReq && !updateReq.destroyed) {
-      updateReq.destroy();
-    }
-
-    // If we found an update during the run, print it at the very bottom
-    if (updateMessage) {
-      console.log(updateMessage);
-    }
-
-    if (signal) {
-      process.kill(process.pid, signal);
-    } else {
-      process.exit(code || 0);
-    }
-  });
+  if (args[0] === 'listen') {
+    console.log(`\x1b[36m[kepoin:info]\x1b[0m Mode: Hub (Standalone)`);
+    console.log(`\x1b[36m[kepoin:info]\x1b[0m WebSocket Port: ${envVars.KEPOIN_WS_PORT || 54321}`);
+  } else {
+    console.log(`\x1b[36m[kepoin:info]\x1b[0m Target: ${scriptArgs.join(' ')}`);
+    if (envVars.KEPOIN_OUT_FILE) console.log(`\x1b[36m[kepoin:info]\x1b[0m Output: ${envVars.KEPOIN_OUT_FILE}`);
+    if (envVars.KEPOIN_REDACT_KEYS) console.log(`\x1b[36m[kepoin:info]\x1b[0m Redaction: ${envVars.KEPOIN_REDACT_KEYS}`);
+    if (envVars.KEPOIN_SLOW_THRESHOLD) console.log(`\x1b[36m[kepoin:info]\x1b[0m Threshold: >${envVars.KEPOIN_SLOW_THRESHOLD}ms`);
+  }
+  console.log(); // Blank line for padding
 }
+
+async function bootKepoin() {
+  const updateMessage = await fetchLatestVersion();
+  printBanner(updateMessage);
+
+  if (args[0] === 'listen') {
+    // Start the Centralized Telemetry Hub
+    Object.assign(process.env, envVars);
+    import('../src/server/hub.js').then(({ startHub }) => {
+      startHub(finalEnv);
+    });
+  } else {
+    // Spawn the child node process
+    const child = spawn(process.execPath, [...nodeArgs, ...scriptArgs], {
+      stdio: 'inherit',
+      env: finalEnv,
+    });
+
+    child.on('exit', (code, signal) => {
+      if (signal) {
+        process.kill(process.pid, signal);
+      } else {
+        process.exit(code || 0);
+      }
+    });
+  }
+}
+
+bootKepoin();
