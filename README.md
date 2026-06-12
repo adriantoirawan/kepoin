@@ -59,15 +59,25 @@ npm install kepoin --save-dev
 
 ---
 
-## 🚀 Usage Guide
+## 👶 The Babystep Guides (Start Here)
+
+To make integration absolutely frictionless, we have split our documentation into step-by-step guides. If you are new to `kepoin`, start with the guide that matches your stack:
+
+* [01. React Native & Mobile Apps](./docs/babysteps/01-react-native-mobile.md)
+* [02. Web Browsers (React/Vue/Vanilla)](./docs/babysteps/02-web-browser.md)
+* [03. Node.js Backends](./docs/babysteps/03-nodejs-backend.md)
+
+---
+
+## 🚀 Usage Quickstart
 
 ### 1. Booting the Hub
 ```bash
 # Start the Standalone Telemetry Hub
-kepoin listen
+npx kepoin listen
 
 # Start the Headless SaaS IPC Hub
-kepoin listen --headless
+npx kepoin listen --headless
 ```
 
 ### 2. Injecting into Backend Node.js
@@ -96,13 +106,52 @@ initKepoinMobile();
 
 ---
 
-## 📚 Comprehensive Architecture Documentation
+## 🚩 CLI Flags Reference
 
-To dive deeply into the advanced Socratic Engine capabilities and API contracts, consult our dedicated documentation:
-* [The Socratic Engine Architecture](./docs/the-socratic-engine.md): Learn about IPC piping, Zlib deflation, and the `kepoin:crash` Schema.
-* [Universal Bridges & Phantom Snapshots](./docs/universal-bridges.md): Learn how `kepoin` handles frontend interception.
-* [CLI & Configuration Guide](./docs/cli-and-configuration.md): Master the `kepoin listen` flags and `kepoin.json` overrides.
-* [Security & Redaction](./docs/security-and-redaction.md): Understand the V8 safety limitations and manual truncation rules.
+When running `kepoin <script.js>` or `kepoin listen`, you can pass the following flags to customize its behavior. You can read the full [CLI & Configuration Guide](./docs/reference/cli-and-configuration.md) for more details.
+
+| Flag/Command | Expects | Description & Use Case |
+|---|---|---|
+| `listen` | Command | **Boot the Telemetry Hub.** Starts a local WebSocket server (port `54321`). |
+| `--headless` | Flag | **The IPC Hub Mode.** Can only be used with `listen`. Suppresses all ANSI terminal output and routes telemetry via IPC. |
+| `--out=<file>` | Filepath | **Stream logs to a file.** Useful for piping NDJSON to Datadog. |
+| `--slow=<ms>` | Milliseconds | **Threshold Tracing.** Only log functions that take longer than this threshold. |
+| `--max-depth=<N>` | Integer | **Override serialization depth.** Default is 4. |
+| `--redact=<keys>` | Strings | **Custom Redaction Dictionary.** Add extra keys to scrub. |
+| `--disable` | None | **The Hard Kill Switch.** Bypasses all tracing entirely. |
+| `--examples` | None | Lists interactive examples bundled with the package. |
+| `--init-examples`| None | Extracts interactive examples to your local project. |
+
+---
+
+## 🎮 Interactive Tutorial Suite
+
+Want to see the Socratic Hub in action before integrating it into your code? `kepoin` ships with a built-in suite of interactive sandboxes.
+
+You do not need to clone this repository! Just install `kepoin` globally and run the examples wizard anywhere on your computer:
+
+```bash
+# Safely copy the interactive examples into your current directory
+npx kepoin --init-examples
+
+# List the commands to run them!
+npx kepoin --examples
+```
+
+Inside the extracted `examples/` folder, you will find incredibly powerful demonstrations:
+* **05-socratic-hub:** Open a beautiful HTML sandbox, click buttons to crash the browser, and watch the Phantom Snapshot stream over WebSocket to your terminal!
+* **06-lexical-scraper:** Run our headless orchestrator to see how `kepoin` natively intercepts V8 and dumps out local scoped variables (`{ superSecretToken: 'abc' }`) during a backend crash.
+* **07-time-travel-dashcam:** Run a script that loops 5,000 times to see exactly how the $O(1)$ Dashcam array truncates memory dynamically.
+
+---
+
+## 📚 Deep Architecture Documentation
+
+To dive deeply into the advanced Socratic Engine capabilities and API contracts, consult our dedicated architectural references:
+
+* [The Socratic Engine Architecture](./docs/architecture/the-socratic-engine.md): Learn about IPC piping, Zlib deflation, and the `kepoin:crash` Schema.
+* [The Forensic Autopsy](./docs/architecture/the-forensic-autopsy.md): Learn how to interpret the module cache dump during a crash.
+* [Security & Redaction](./docs/architecture/security-and-redaction.md): Understand the $O(1)$ sanitizer, WeakSet protection, and the Hard Kill Switch.
 
 📄 License
 MIT © Adrianto Puji Irawan

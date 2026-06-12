@@ -36,6 +36,10 @@ If you are building a tool that consumes `kepoin` (like `reskyu`), you must resp
 
 ### `KepoinCrashPayload`
 Fired exclusively when `kepoin/register`, `kepoin/browser`, or `kepoin/mobile` catches a fatal exception.
+
+> [!TIP]
+> **Test it Locally:** Run our [06-lexical-scraper example](../../examples/06-lexical-scraper/) to see the orchestrator catch this exact payload over IPC and extract local scoped variables!
+
 ```typescript
 {
   type: 'kepoin:crash',
