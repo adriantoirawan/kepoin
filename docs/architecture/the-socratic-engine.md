@@ -1,6 +1,6 @@
 # The Socratic Engine Architecture
 
-The Socratic Engine architecture forms the backbone of `kepoin` v0.1.2. It marks the transition of `kepoin` from a simple forensic logger to a universal telemetry proxy capable of serving massive orchestrators (like `reskyu`).
+The Socratic Engine architecture forms the backbone of `kepoin` v0.1.10. It marks the transition of `kepoin` from a simple forensic logger to a universal telemetry proxy capable of serving massive orchestrators (like `reskyu`).
 
 ## 1. The Headless IPC Pipeline
 
