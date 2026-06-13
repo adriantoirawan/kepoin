@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./src/index.js",
   "bin": {
-    "kepoin": "./bin/cli.js"
+    "kepoin": "bin/cli.js"
   },
   "engines": {
     "node": ">=18.0.0"
