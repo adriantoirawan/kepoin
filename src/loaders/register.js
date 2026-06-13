@@ -2,7 +2,6 @@ import Module from 'node:module';
 import path from 'node:path';
 import { kepoin } from '../core/telemetry.js';
 import { initForensics } from '../core/forensics.js';
-import { initIntrospector } from '../core/introspector.js';
 import { getConfig } from '../utils/config.js';
 
 const originalRequire = Module.prototype.require;
@@ -49,8 +48,4 @@ Module.prototype.require = function(id) {
 };
 
 // Initialize the crash handlers
-if (getConfig().isHeadless) {
-  initIntrospector();
-} else {
-  initForensics();
-}
+initForensics();

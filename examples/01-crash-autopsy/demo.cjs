@@ -1,4 +1,4 @@
-const DB = require('./01-db.cjs');
+const DB = require('./db.cjs');
 
 async function main() {
   console.log("--- Starting kepoin Demo ---");

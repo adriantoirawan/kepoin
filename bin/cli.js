@@ -25,14 +25,46 @@ function getPkgInfo() {
   }
 }
 
-function printHelp() {
+function printUsage() {
   const pkg = getPkgInfo();
   console.log(`
-\x1b[36m\x1b[1m🕵️ kepoin v${pkg.version}\x1b[0m - Nosy by nature. Forensic by design.
+\x1b[36m🕵️  \x1b[1mkepoin (v${pkg.version})\x1b[0m
+\x1b[36m┌──────────────────────────────────────────┐
+│  Nosy by nature. Forensic by design.     │
+└──────────────────────────────────────────┘\x1b[0m
 
 \x1b[1mUSAGE\x1b[0m
   $ kepoin [options] <script.js>
-  $ kepoin listen [--headless]  \x1b[90m# Start the Centralized Telemetry Hub for Mobile/Browser\x1b[0m
+  $ kepoin listen               # Start the Centralized Telemetry Hub for Mobile\x1b[0m
+
+\x1b[1mEXAMPLE COMMANDS\x1b[0m
+  \x1b[90m# Trace local development in the terminal\x1b[0m
+  $ kepoin server.js
+
+  \x1b[90m# Hunt for performance bottlenecks (only log methods taking > 50ms)\x1b[0m
+  $ kepoin --out=trace.jsonl --slow=50 server.js
+
+  \x1b[90m# Protect custom sensitive tokens from being logged\x1b[0m
+  $ kepoin --redact="stripe_key,db_pass" script.js
+
+\x1b[1mMORE INFO\x1b[0m
+  * Run \x1b[33mkepoin --help\x1b[0m for the full list of options and environment variables.
+  * Deep documentation is available in \x1b[34m/docs/architecture\x1b[0m, \x1b[34m/docs/babysteps\x1b[0m, and \x1b[34m/docs/reference\x1b[0m.
+  * Online: \x1b[34m${pkg.homepage.replace('#readme', '')}\x1b[0m
+`);
+}
+
+function printHelp() {
+  const pkg = getPkgInfo();
+  console.log(`
+\x1b[36m🕵️  \x1b[1mkepoin (v${pkg.version})\x1b[0m
+\x1b[36m┌──────────────────────────────────────────┐
+│  Nosy by nature. Forensic by design.     │
+└──────────────────────────────────────────┘\x1b[0m
+
+\x1b[1mUSAGE\x1b[0m
+  $ kepoin [options] <script.js>
+  $ kepoin listen               # Start the Centralized Telemetry Hub for Mobile\x1b[0m
 
 \x1b[1mOPTIONS\x1b[0m
   --out=<file>      Stream logs to an NDJSON file (e.g., trace.jsonl)
@@ -42,7 +74,6 @@ function printHelp() {
   --redact=<keys>   Comma-separated list of extra keys to redact (e.g., "ssn,api_key").
   --verbose         Print diagnostic internal kepoin logs.
   --disable         Hard kill switch. Bypasses all tracing with 0% performance penalty.
-  --headless        (Hub Mode) Suppress terminal output and stream telemetry via process.send().
   --ws-port=<port>  (Hub Mode) Port for the WebSocket server (default: 54321).
   --examples        List interactive examples bundled with kepoin.
   --init-examples   Copy interactive examples to ./kepoin-examples/ in your current directory.
@@ -59,7 +90,7 @@ function printHelp() {
   \x1b[36mKEPOIN_VERBOSE\x1b[0m        ➔ Maps to \x1b[33m--verbose\x1b[0m
   \x1b[36mKEPOIN_ENABLED\x1b[0m        ➔ Maps to \x1b[33m--disable\x1b[0m (when set to 'false')
 
-\x1b[1mEXAMPLES\x1b[0m
+\x1b[1mEXAMPLE COMMANDS\x1b[0m
   \x1b[90m# Trace local development in the terminal\x1b[0m
   $ kepoin server.js
 
@@ -70,7 +101,9 @@ function printHelp() {
   $ kepoin --redact="stripe_key,db_pass" script.js
 
 \x1b[1mMORE INFO\x1b[0m
-  Documentation: \x1b[34m${pkg.homepage.replace('#readme', '')}\x1b[0m
+  * Run \x1b[33mkepoin --help\x1b[0m for the full list of options and environment variables.
+  * Deep documentation is available in \x1b[34m/docs/architecture\x1b[0m, \x1b[34m/docs/babysteps\x1b[0m, and \x1b[34m/docs/reference\x1b[0m.
+  * Online: \x1b[34m${pkg.homepage.replace('#readme', '')}\x1b[0m
 `);
 }
 
@@ -86,17 +119,17 @@ Then you can open the files to review the code and run them:
 \x1b[1m1. Crash Autopsy & Circular References\x1b[0m
    Demonstrates default tracking, circular reference protection, and the
    Forensic Autopsy engine by intentionally crashing a simulated database.
-   \x1b[33mCommand:\x1b[0m npx kepoin ./kepoin-examples/01-crash-autopsy.cjs
+   \x1b[33mCommand:\x1b[0m npx kepoin ./kepoin-examples/01-crash-autopsy/demo.cjs
 
 \x1b[1m2. Surgical Tracing & Automatic Redaction\x1b[0m
    Shows how to bypass the CLI entirely. You can use \`import { kepoin }\` to 
    wrap a specific class. It also passes a \`stripe_key\` to demonstrate redaction.
-   \x1b[33mCommand:\x1b[0m node ./kepoin-examples/02-surgical-tracing.mjs
+   \x1b[33mCommand:\x1b[0m node ./kepoin-examples/02-surgical-tracing/demo.mjs
 
 \x1b[1m3. Performance Auditing (Threshold Tracing)\x1b[0m
    A script containing two functions (one fast, one slow). By passing \`--slow=100\`,
    the fast function is ignored, helping you isolate bottlenecks instantly.
-   \x1b[33mCommand:\x1b[0m npx kepoin --slow=100 ./kepoin-examples/03-performance-audit.cjs
+   \x1b[33mCommand:\x1b[0m npx kepoin --slow=100 ./kepoin-examples/03-performance-audit/demo.cjs
 
 \x1b[1m4. Corrupted Configuration Guardrails\x1b[0m
    Demonstrates kepoin's graceful fallback when encountering a malformed \`kepoin.json\`
@@ -110,7 +143,12 @@ function printVersion() {
   console.log(`v${pkg.version}`);
 }
 
-if (args.length === 0 || args.includes('-h') || args.includes('--help')) {
+if (args.length === 0) {
+  printUsage();
+  process.exit(0);
+}
+
+if (args.includes('-h') || args.includes('--help')) {
   printHelp();
   process.exit(0);
 }
@@ -138,7 +176,7 @@ if (args.includes('-v') || args.includes('--version')) {
   process.exit(0);
 }
 
-const KEPOIN_FLAGS = ['--out', '--format', '--slow', '--max-depth', '--redact', '--verbose', '--disable', '--headless', '--ws-port', '--examples', '--init-examples', '--help', '--version', '-h', '-v'];
+const KEPOIN_FLAGS = ['--out', '--format', '--slow', '--max-depth', '--redact', '--verbose', '--disable', '--ws-port', '--examples', '--init-examples', '--help', '--version', '-h', '-v'];
 
 function levenshtein(a, b) {
   const matrix = [];
@@ -203,11 +241,6 @@ for (let i = 0; i < args.length; i++) {
       providedKepoinFlags.push(arg);
       continue;
     }
-    if (arg === '--headless') {
-      envVars.KEPOIN_HEADLESS = 'true';
-      providedKepoinFlags.push(arg);
-      continue;
-    }
     if (arg.startsWith('--ws-port=')) {
       envVars.KEPOIN_WS_PORT = arg.split('=')[1];
       providedKepoinFlags.push(arg);
@@ -262,7 +295,7 @@ if (scriptArgs.length === 0 && args[0] !== 'listen') {
   }
   console.log(`\x1b[36m[kepoin:info]\x1b[0m You provided configuration flags, but kepoin needs a target script to run against.\n`);
   
-  printHelp();
+  printUsage();
   
   console.error(`\n\x1b[31m[kepoin:error]\x1b[0m Missing target script. Usage: \x1b[1mkepoin [options] <script.js>\x1b[0m`);
   process.exit(1);
@@ -278,7 +311,6 @@ if (envVars.KEPOIN_ENABLED !== 'false') {
 }
 
 const finalEnv = { ...process.env, ...envVars };
-const isHeadless = envVars.KEPOIN_HEADLESS === 'true';
 
 function isNewerVersion(latest, current) {
   const lParts = latest.split('.').map(Number);
@@ -291,7 +323,7 @@ function isNewerVersion(latest, current) {
 }
 
 async function fetchLatestVersion() {
-  if (!process.stdout.isTTY || envVars.KEPOIN_ENABLED === 'false' || process.env.CI || isHeadless) {
+  if (!process.stdout.isTTY || envVars.KEPOIN_ENABLED === 'false' || process.env.CI) {
     return null;
   }
   
@@ -327,7 +359,6 @@ async function fetchLatestVersion() {
 }
 
 function printBanner(updateMessage) {
-  if (isHeadless) return;
   
   const pkg = getPkgInfo();
   console.log(`\x1b[36m🕵️  \x1b[1mkepoin (v${pkg.version})\x1b[0m`);

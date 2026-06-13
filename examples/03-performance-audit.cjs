@@ -1,1 +1,0 @@
-const lib = require('./03-lib-audit.cjs'); async function runAudit() { console.log('--- Starting Performance Audit Demo ---'); lib.veryFastFunction(); await lib.verySlowFunction(); console.log('--- Demo Complete ---'); } runAudit();

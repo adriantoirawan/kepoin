@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import zlib from 'node:zlib';
 import { getConfig } from './config.js';
 import { sanitize } from '../core/sanitizer.js';
 
@@ -52,11 +51,6 @@ function formatAnsi(payload) {
     prefix += `\x1b[32m✔ Resolved:\x1b[0m  ${target}${timeStr}`;
   } else if (status === 'Failed') {
     prefix += `\x1b[31m✖ Failed:\x1b[0m    ${target}${timeStr} - ${error || message}`;
-  } else if (status === 'Phantom Snapshot') {
-    prefix += `\x1b[35m📸 Phantom Snapshot:\x1b[0m <${target}>
-    \x1b[90m↳ DOM Length:\x1b[0m ${payload.domContext ? payload.domContext.length : 0} chars
-    \x1b[90m↳ CSS Length:\x1b[0m ${payload.cssContext ? Object.keys(payload.cssContext).length : 0} rules
-    \x1b[90m↳ Base64 Slice:\x1b[0m ${payload.imageSlice ? payload.imageSlice.substring(0, 50) + '... (' + payload.imageSlice.length + ' bytes)' : 'Missing'}`;
   } else {
     prefix += `[${status}] ${message || ''}`;
   }
@@ -78,25 +72,6 @@ export function logEvent(payload) {
 
   // Pass payload through the dynamic redaction engine
   const safePayload = sanitize(payload);
-
-  if (config.isHeadless) {
-    if (process.send) {
-      const payloadStr = JSON.stringify(safePayload);
-      if (payloadStr.length > 50000) {
-        const compressed = zlib.deflateSync(payloadStr).toString('base64');
-        process.send({
-          type: 'kepoin:compressed',
-          originalType: 'kepoin:telemetry',
-          encoding: 'deflate',
-          data: compressed
-        });
-      } else {
-        process.send({ type: 'kepoin:telemetry', payload: safePayload });
-      }
-    }
-    // Strict bypass: Never print to stdout in headless mode
-    return;
-  }
 
   if (writeStream) {
     // Pipe as NDJSON
@@ -124,24 +99,6 @@ export function emergencySyncFlush(payload) {
 
   const safePayload = sanitize(payload, 6); // Hardcode deeper depth for autopsies
 
-  if (config.isHeadless) {
-    if (process.send) {
-      const payloadStr = JSON.stringify(safePayload);
-      if (payloadStr.length > 50000) {
-        const compressed = zlib.deflateSync(payloadStr).toString('base64');
-        process.send({
-          type: 'kepoin:compressed',
-          originalType: 'kepoin:crash',
-          encoding: 'deflate',
-          data: compressed
-        });
-      } else {
-        process.send({ type: 'kepoin:crash', payload: safePayload });
-      }
-    }
-    return;
-  }
-
   if (resolvedOutFile) {
     const jsonl = JSON.stringify(safePayload) + '\n';
     try {
@@ -156,6 +113,14 @@ export function emergencySyncFlush(payload) {
     console.error('\n \x1b[41m\x1b[37m 🔍 TELEMETRY FORENSIC AUTOPSY REPORT \x1b[0m');
     console.error(`\x1b[31m💥 Incident Location:\x1b[0m ${safePayload.incidentLocation || 'Unknown'}`);
     console.error(`\x1b[31m💥 Error Message:\x1b[0m     ${safePayload.errorMessage || 'Unknown'}`);
+    
+    if (safePayload.localVariables) {
+      console.error('\n--- Local Variable Scope (V8 Lexical Autopsy) ---');
+      for (const [varName, value] of Object.entries(safePayload.localVariables)) {
+        console.error(`${varName.padEnd(20)} ➔ ${value}`);
+      }
+    }
+
     console.error('\n--- Active Local Module Cache State ---');
     
     if (safePayload.cacheDump) {

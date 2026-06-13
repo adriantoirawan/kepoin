@@ -1,17 +1,18 @@
-import { getConfig } from '../utils/config.js';
-import { emergencySyncFlush } from '../utils/logger.js';
+import inspector from 'node:inspector';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { getConfig } from '../utils/config.js';
+import { emergencySyncFlush } from '../utils/logger.js';
 
 const require = createRequire(import.meta.url);
 
 let installed = false;
+let session = null;
 
 function buildCacheDump() {
   const dump = {};
   
   for (const [modPath, modCache] of Object.entries(require.cache)) {
-    // Exclude core and node_modules to keep autopsy fast and readable
     if (modPath.includes('node_modules') || !path.isAbsolute(modPath)) continue;
 
     const exportsObj = modCache.exports;
@@ -54,44 +55,124 @@ function buildCacheDump() {
   return dump;
 }
 
-function handleCrash(error, incidentLocationStr) {
-  const config = getConfig();
-  if (!config.enabled) {
-    process.exit(1);
-    return;
+function extractLocalVariables(properties) {
+  const localVars = {};
+  for (const prop of properties) {
+    if (!prop.enumerable && prop.name !== 'this') continue;
+    
+    if (prop.value) {
+      if (prop.value.type === 'object' || prop.value.type === 'function') {
+        let desc = prop.value.description || prop.value.className;
+        if (prop.value.subtype === 'array') {
+          const match = desc.match(/Array\(([0-9]+)\)/);
+          if (match && parseInt(match[1], 10) > 50) {
+            desc = `[Truncated Array: ${match[1]} items]`;
+          }
+        }
+        localVars[prop.name] = desc;
+      } else {
+        localVars[prop.name] = prop.value.value;
+      }
+    } else {
+      localVars[prop.name] = undefined;
+    }
   }
+  return localVars;
+}
 
+function extractTopCallsite(stack) {
+  if (!stack) return 'Unknown Location';
+  const lines = stack.split('\n');
+  for (const line of lines) {
+    if (line.includes('at ') && !line.includes('node:internal') && !line.includes('kepoin/src/')) {
+      const match = line.match(/at\s+(.*)\s+\((.*)\)/) || line.match(/at\s+(.*)/);
+      if (match) return match[0].trim();
+    }
+  }
+  return 'Unknown Location';
+}
+
+function finishCrash(incidentLocation, errorMessage, errorStack, localVars) {
   const payload = {
-    incidentLocation: incidentLocationStr || 'Unknown',
-    errorMessage: error ? error.message : 'Unknown Error',
-    errorStack: error ? error.stack : undefined,
+    incidentLocation: incidentLocation || 'Unknown',
+    errorMessage: errorMessage || 'Unknown Error',
+    errorStack: errorStack,
+    localVariables: localVars,
     cacheDump: buildCacheDump(),
     timestamp: new Date().toISOString()
   };
 
   emergencySyncFlush(payload);
-  
-  // Must exit after uncaught crash
   process.exit(1);
 }
 
-/**
- * Initializes the Forensic Autopsy Engine.
- */
+function handleFallbackCrash(error) {
+  const incidentLocation = extractTopCallsite(error ? error.stack : '');
+  const errorMessage = error ? error.message : 'Unknown Error';
+  finishCrash(incidentLocation, errorMessage, error ? error.stack : undefined, { _warning: 'Inspector unavailable. Local scope could not be captured.' });
+}
+
 export function initForensics() {
   const config = getConfig();
   if (!config.enabled || installed) return;
 
-  // We can't determine the exact function that failed easily from here, 
-  // but we provide the error message and the cache dump.
-  process.on('uncaughtException', (error) => {
-    handleCrash(error, 'uncaughtException');
-  });
+  try {
+    session = new inspector.Session();
+    session.connect();
 
+    session.post('Debugger.enable', () => {
+      session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+    });
+
+    session.on('Debugger.paused', (message) => {
+      const { callFrames, reason, data } = message.params;
+      
+      if (reason !== 'exception' && reason !== 'promiseRejection') return;
+
+      const topFrame = callFrames[0];
+      if (!topFrame) {
+        handleFallbackCrash(data);
+        return;
+      }
+
+      const localScope = topFrame.scopeChain.find(s => s.type === 'local');
+      let localVars = {};
+      
+      const errorObj = data && data.description ? data.description : 'Unknown Error';
+      const errorMessage = errorObj.split('\n')[0];
+      const incidentLocation = topFrame.url ? `${topFrame.url.replace('file://', '')}:${topFrame.location.lineNumber + 1}` : 'Unknown';
+
+      if (localScope && localScope.object && localScope.object.objectId) {
+        session.post('Runtime.getProperties', {
+          objectId: localScope.object.objectId,
+          ownProperties: true
+        }, (err, props) => {
+          if (!err && props.result) {
+            localVars = extractLocalVariables(props.result);
+          }
+          finishCrash(incidentLocation, errorMessage, errorObj, localVars);
+        });
+      } else {
+        finishCrash(incidentLocation, errorMessage, errorObj, localVars);
+      }
+    });
+
+    installed = true;
+  } catch (err) {
+    if (config.verbose) {
+      console.error(`\x1b[90m[kepoin:forensics]\x1b[0m Failed to attach inspector: ${err.message}. Falling back to standard hooks.`);
+    }
+    installFallbackHooks();
+  }
+}
+
+function installFallbackHooks() {
+  process.on('uncaughtException', (error) => {
+    handleFallbackCrash(error);
+  });
   process.on('unhandledRejection', (reason) => {
     const error = reason instanceof Error ? reason : new Error(String(reason));
-    handleCrash(error, 'unhandledRejection');
+    handleFallbackCrash(error);
   });
-
   installed = true;
 }

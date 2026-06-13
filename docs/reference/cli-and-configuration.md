@@ -10,8 +10,7 @@
 
 | Flag/Command | Expects | Description & Use Case |
 |---|---|---|
-| `listen` | Command | **Boot the Telemetry Hub.** Starts a local WebSocket server (port `54321`) to receive payloads from mobile/browser bridges. |
-| `--headless` | Flag | **The IPC Hub Mode.** Can only be used with `listen`. Suppresses all ANSI terminal output and routes all incoming telemetry over Node.js IPC (`process.send`) via the Socratic Schema. |
+| `listen` | Command | **Boot the Telemetry Hub.** Starts a local WebSocket server (port `54321`) to receive payloads from mobile bridges. |
 | `--out` | Filepath | **Stream logs to a file.** Useful for piping NDJSON to ingestion tools like Datadog or Kibana. Example: `--out=trace.jsonl` |
 | `--format` | `ansi` or `json` | **Force log format.** By default, `kepoin` uses ANSI colors for the terminal and JSON for files. Use this to override. |
 | `--slow` | Milliseconds | **Threshold Tracing.** Only log functions that take longer than this threshold. Crucial for performance benchmarking and finding slow database queries. Example: `--slow=50` |
@@ -33,7 +32,6 @@ Every CLI flag can be controlled via Environment Variables. This is perfect for 
 * `KEPOIN_REDACT_KEYS` ➔ Maps to `--redact`
 * `KEPOIN_VERBOSE` ➔ Maps to `--verbose`
 * `KEPOIN_ENABLED` ➔ Maps to `--disable` (when set to `false`)
-* `KEPOIN_HEADLESS` ➔ Maps to `--headless`
 
 ## Persistent Configuration (`kepoin.json`)
 

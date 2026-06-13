@@ -1,6 +1,6 @@
 # Babystep 01: React Native & Expo Mobile App
 
-Welcome! Let's connect your React Native mobile application to the `kepoin` Socratic Hub in under 60 seconds. 
+Welcome! Let's connect your React Native mobile application to the `kepoin` Telemetry Hub in under 60 seconds. 
 
 By the end of this guide, any fatal crash on your phone will magically appear on your computer with full stack trace context.
 
