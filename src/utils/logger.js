@@ -6,6 +6,37 @@ import { sanitize } from '../core/sanitizer.js';
 let writeStream = null;
 let resolvedOutFile = null;
 
+let totalCalls = 0;
+let totalErrors = 0;
+const errorSummary = [];
+let hasPrintedSummary = false;
+
+process.on('exit', () => {
+  const config = getConfig();
+  if (!config.enabled || totalCalls === 0 || hasPrintedSummary) return;
+  hasPrintedSummary = true;
+
+  console.log('\n \x1b[46m\x1b[37m 🏁 KEPOIN POST-FLIGHT SUMMARY \x1b[0m\n');
+  console.log(' \x1b[1m📊 Metrics:\x1b[0m');
+  console.log(`    Total Intercepted Calls : ${totalCalls}`);
+  console.log(`    Caught Exceptions       : ${totalErrors}\n`);
+
+  if (errorSummary.length > 0) {
+    console.log(' \x1b[33m⚠️  Exceptions Caught (Top 50):\x1b[0m');
+    errorSummary.forEach(err => {
+      console.log(`    \x1b[36m[#${err.callId}]\x1b[0m ${err.target}`);
+      console.log(`         ➔ ${err.error} (Occurred at: ${err.timestamp})`);
+    });
+
+    console.log('\n    \x1b[33m💡 [TIP]\x1b[0m The terminal summary is capped at 50 exceptions to protect memory.');
+    if (totalErrors > 50) {
+      console.log(`    ${totalErrors - 50} additional exceptions were not saved.`);
+    }
+    console.log('    Use the --out=<file> flag to persistently stream all logs to disk.');
+  }
+  console.log('\n------------------------------------------------\n');
+});
+
 function initLogger() {
   const config = getConfig();
   if (!config.enabled) return;
@@ -41,10 +72,13 @@ export function verboseLog(message) {
  * Formats a payload for ANSI terminal output.
  */
 function formatAnsi(payload) {
-  const { location, status, message, duration, target, error } = payload;
+  const { callId, location, status, message, duration, target, error } = payload;
   const timeStr = duration ? ` (+${duration.toFixed(2)}ms)` : '';
   
-  let prefix = `[${location || 'unknown'}] `;
+  const shortTime = payload.timestamp ? payload.timestamp.split('T')[1].replace('Z', '') : '';
+  
+  const idPrefix = callId ? `\x1b[36m[#${callId}]\x1b[0m ` : '';
+  let prefix = `\x1b[90m${shortTime} │\x1b[0m ${idPrefix}[${location || 'unknown'}] `;
   if (status === 'Executing') {
     prefix += `\x1b[36m▶ Executing:\x1b[0m ${target}`;
   } else if (status === 'Resolved') {
@@ -68,6 +102,17 @@ export function logEvent(payload) {
 
   if (!writeStream && config.outFile) {
     initLogger();
+  }
+
+  payload.timestamp = new Date().toISOString();
+
+  if (payload.status === 'Executing') {
+    totalCalls++;
+  } else if (payload.status === 'Failed') {
+    totalErrors++;
+    if (errorSummary.length < 50) {
+      errorSummary.push(payload);
+    }
   }
 
   // Pass payload through the dynamic redaction engine

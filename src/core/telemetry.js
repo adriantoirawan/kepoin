@@ -5,6 +5,8 @@ import { getConfig } from '../utils/config.js';
 const RAW_TARGET = Symbol('KEPOIN_RAW_TARGET');
 const proxiedMap = new WeakMap();
 
+let callIdCounter = 0;
+
 function isNativeSafe(target) {
   // Try to determine if the object is something that will aggressively crash
   // if proxied, like Promises or Streams. If it has a RAW_TARGET, we unwrap it.
@@ -64,10 +66,12 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
     },
 
     apply(obj, thisArg, args) {
+      const callId = ++callIdCounter;
       const startTime = performance.now();
       
       if (config.slowThreshold === 0) {
         logEvent({
+          callId,
           location,
           target: name,
           status: 'Executing',
@@ -88,6 +92,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
               const duration = performance.now() - startTime;
               if (duration >= config.slowThreshold) {
                 logEvent({
+                  callId,
                   location,
                   target: name,
                   status: 'Resolved',
@@ -100,6 +105,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
               const duration = performance.now() - startTime;
               if (duration >= config.slowThreshold) {
                 logEvent({
+                  callId,
                   location,
                   target: name,
                   status: 'Failed',
@@ -114,6 +120,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
           const duration = performance.now() - startTime;
           if (duration >= config.slowThreshold) {
             logEvent({
+              callId,
               location,
               target: name,
               status: 'Resolved',
@@ -129,6 +136,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
         const duration = performance.now() - startTime;
         if (duration >= config.slowThreshold) {
           logEvent({
+            callId,
             location,
             target: name,
             status: 'Failed',
@@ -141,9 +149,11 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
     },
 
     construct(obj, args, newTarget) {
+      const callId = ++callIdCounter;
       const startTime = performance.now();
       if (config.slowThreshold === 0) {
         logEvent({
+          callId,
           location,
           target: name,
           status: 'Executing',
@@ -158,6 +168,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
         const duration = performance.now() - startTime;
         if (duration >= config.slowThreshold) {
           logEvent({
+            callId,
             location,
             target: name,
             status: 'Resolved',
@@ -170,6 +181,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
         const duration = performance.now() - startTime;
         if (duration >= config.slowThreshold) {
           logEvent({
+            callId,
             location,
             target: name,
             status: 'Failed',

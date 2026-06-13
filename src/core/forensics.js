@@ -86,7 +86,9 @@ function extractTopCallsite(stack) {
   for (const line of lines) {
     if (line.includes('at ') && !line.includes('node:internal') && !line.includes('kepoin/src/')) {
       const match = line.match(/at\s+(.*)\s+\((.*)\)/) || line.match(/at\s+(.*)/);
-      if (match) return match[0].trim();
+      if (match) {
+        return line.trim().replace(/^at\s+/, '');
+      }
     }
   }
   return 'Unknown Location';
@@ -140,7 +142,7 @@ export function initForensics() {
       
       const errorObj = data && data.description ? data.description : 'Unknown Error';
       const errorMessage = errorObj.split('\n')[0];
-      const incidentLocation = topFrame.url ? `${topFrame.url.replace('file://', '')}:${topFrame.location.lineNumber + 1}` : 'Unknown';
+      const incidentLocation = topFrame.url ? `${topFrame.url.replace('file://', '')}:${topFrame.location.lineNumber + 1}` : extractTopCallsite(errorObj);
 
       if (localScope && localScope.object && localScope.object.objectId) {
         session.post('Runtime.getProperties', {
