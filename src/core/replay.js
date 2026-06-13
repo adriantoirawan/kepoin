@@ -195,6 +195,9 @@ export async function startReplay(filePath) {
     
     // Restore Gutter styling (Dim up to the │ symbol)
     line = line.replace(/^(.+? │)/, '\x1b[90m$1\x1b[0m');
+    
+    // Restore ID Cyan styling
+    line = line.replace(/(\[#\d+\])/, '\x1b[36m$1\x1b[0m');
 
     // Maintain the Sliding Context Buffer
     slidingBuffer.push(line);
