@@ -149,7 +149,10 @@ process.on('exit', () => {
     if (totalErrors > 50) {
       console.log(`    ${totalErrors - 50} additional exceptions were not saved.`);
     }
-    console.log('    Use --log-dir and --spill-dir to persistently stream traces to disk.');
+    
+    if (!config.logDir && !config.spillDir) {
+      console.log('    Use --log-dir and --spill-dir to persistently stream traces to disk.');
+    }
   }
   console.log('\n------------------------------------------------\n');
 });
