@@ -437,7 +437,7 @@ async function bootKepoin() {
       startHub(finalEnv);
     });
   } else if (args[0] === 'replay') {
-    const replayFile = scriptArgs[1];
+    const replayFile = scriptArgs[0];
     if (!replayFile || !replayFile.endsWith('.spil')) {
       console.error(`\x1b[31m[kepoin:error]\x1b[0m Missing or invalid trace file. Usage: \x1b[1mkepoin replay <file.spil>\x1b[0m`);
       process.exit(1);
