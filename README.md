@@ -23,7 +23,9 @@ When you run `kepoin`, our **Time-Capped Asynchronous Bootloader** fires up inst
 `kepoin listen` boots a blazing-fast local WebSocket server that aggregates crash reports and diagnostics from mobile applications into a single beautifully colored terminal stream, or NDJSON file output.
 
 ### 2. The Cinematic Replay Engine
-When debugging distributed clusters or multi-day test runs, developers can dump human-readable execution streams using `--spill-dir`. Later, you can run `kepoin replay <file>.spil` to boot an **Interactive Matrix-Style Replay Engine** that auto-plays thousands of traces, with adjustable speeds, and a sliding context buffer that automatically triggers a "Bullet Time" slow-mo animation upon detecting an anomaly.
+When debugging distributed clusters or multi-day test runs, developers can dump human-readable execution streams using `--spill-dir`. Later, you can run `kepoin replay <file>.spil` to boot an **Interactive Matrix-Style Replay Engine**.
+
+Features a full hardware-accelerated **`nano`-style terminal interface** where you can smoothly auto-play thousands of traces, interactively toggle speeds, and experience "Bullet Time" cinematic blasts when an anomaly crashes the trace!
 
 ### 3. V8 Lexical Scope Scraper (Backend)
 Standard Node.js crash traces tell you *where* the app died. `kepoin` tells you *why*.

@@ -72,7 +72,7 @@ function printHelp() {
 
 \x1b[1mUSAGE\x1b[0m
   $ kepoin [options] <script.js>
-  $ kepoin replay <file.spil>   # Launch the Interactive Cinematic Replay Engine
+  $ kepoin replay <file.spil>   # Launch the Interactive Cinematic Replay Engine (Nano-style UI)
   $ kepoin listen               # Start the Centralized Telemetry Hub for Mobile (Experimental)\x1b[0m
 
 \x1b[1mOPTIONS\x1b[0m
@@ -148,9 +148,11 @@ Then you can open the files to review the code and run them:
 
 \x1b[1m4. The Cinematic Replay Engine\x1b[0m
    Generates a massive 1000-line \`.spil\` trace file that you can replay
-   interactively like a movie, featuring a dramatic slow-mo anomaly effect.
+   interactively like a movie. Features a Nano-style persistent control bar,
+   a Pokemon-style encounter boot animation, and dramatic slow-mo anomalies.
    \x1b[33mStep 1:\x1b[0m npx kepoin --spill-dir=./logs ./kepoin-examples/06-cinematic-replay/demo.cjs
    \x1b[33mStep 2:\x1b[0m npx kepoin replay ./logs/execution-<date>.spil
+   (Hint: Press \`[ENTER]\` to skip the boot animation!)
 
 \x1b[1m5. Corrupted Configuration Guardrails\x1b[0m
    Demonstrates kepoin's graceful fallback when encountering a malformed \`kepoin.json\`
@@ -428,7 +430,10 @@ function printBanner(updateMessage) {
 
 async function bootKepoin() {
   const updateMessage = await fetchLatestVersion();
-  printBanner(updateMessage);
+  
+  if (args[0] !== 'replay') {
+    printBanner(updateMessage);
+  }
 
   if (args[0] === 'listen') {
     // Start the Centralized Telemetry Hub

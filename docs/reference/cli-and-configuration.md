@@ -12,7 +12,7 @@
 | Flag/Command | Expects | Description & Use Case |
 |---|---|---|
 | `listen` | Command | **Boot the Telemetry Hub.** Starts a local WebSocket server (port `54321`) to receive payloads from mobile bridges. |
-| `replay <file>` | Command | **Boot the Cinematic Replay Engine.** Playback `.spil` trace files dynamically. |
+| `replay <file>` | Command | **Boot the Cinematic Replay Engine.** Playback `.spil` trace files dynamically. Features a `nano`-style control bar, adjustable speeds, and anomaly blast animations. |
 | `--log-dir`, `-ld` | Directory | **APM Integrations.** Stream machine-readable JSONL logs to a directory for data crunching. |
 | `--spill-dir`, `-sd` | Directory | **Human Readable Dumps.** Stream ANSI-stripped `.spil` logs to a directory for the Replay engine. |
 | `--format` | `ansi` or `json` | **Force log format.** By default, `kepoin` uses ANSI colors for the terminal and JSON for files. Use this to override. |

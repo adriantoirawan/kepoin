@@ -3,8 +3,117 @@ import readline from 'node:readline';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function printPausedPrompt() {
-  console.log(`\n\x1b[36m[kepoin:ui] ⏸ Paused. Controls: [Space] Next 50 lines | [A] Auto-Play | [S] Skip to Anomaly | [Q] Quit\x1b[0m\n`);
+let state = 'PAUSED'; // PAUSED, PAGINATE, AUTOPLAY, SKIP
+let speedDelay = 100; // ms per line during Auto-Play
+let bulletTimeLines = 0; // Countdown for Matrix slow-mo
+let linesPrintedSincePause = 0;
+const slidingBuffer = []; // Circular buffer for Time-Skip feature
+let isBooting = true;
+let skipBoot = false;
+let footerMsg = null;
+let footerMsgTimeout = null;
+
+function initAlternateScreen() {
+  process.stdout.write('\x1b[?1049h'); // Enter alternate screen
+  process.stdout.write('\x1b[?25l');   // Hide cursor
+  process.stdout.write('\x1b[2J\x1b[H'); // Clear screen, go home
+  
+  const rows = process.stdout.rows || 24;
+  process.stdout.write(`\x1b[1;${Math.max(1, rows - 2)}r`); // Set scrolling region
+  
+  const cleanup = () => {
+    process.stdout.write('\x1b[r'); // Reset scrolling region
+    process.stdout.write('\x1b[?25h'); // Show cursor
+    process.stdout.write('\x1b[?1049l'); // Exit alternate screen
+    process.exit(0);
+  };
+  
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+  
+  process.on('SIGWINCH', () => {
+    const newRows = process.stdout.rows || 24;
+    process.stdout.write(`\x1b[1;${Math.max(1, newRows - 2)}r`);
+    drawFooter();
+  });
+  
+  return cleanup;
+}
+
+function drawFooter() {
+  if (isBooting) return;
+  const rows = process.stdout.rows || 24;
+  const cols = process.stdout.columns || 80;
+  
+  process.stdout.write('\x1b7'); // Save cursor
+  
+  // Footer Line 1 (Status)
+  process.stdout.write(`\x1b[${rows - 1};1H`);
+  if (footerMsg) {
+    const bg = footerMsg.includes('UNRECOGNIZED') ? '\x1b[41m' : '\x1b[46m';
+    const text = ` ${footerMsg} `.padEnd(cols, ' ');
+    process.stdout.write(`${bg}\x1b[37m\x1b[1m${text}\x1b[0m\r`);
+  } else {
+    const statusText = ` 🎬 KEPOIN REPLAY | State: ${state.padEnd(8)} | Speed: ${speedDelay.toString().padStart(4)}ms `.padEnd(cols, ' ');
+    process.stdout.write(`\x1b[46m\x1b[30m${statusText}\x1b[0m\r`);
+  }
+  
+  // Footer Line 2 (Controls)
+  process.stdout.write(`\x1b[${rows};1H`);
+  const controlsText = ` [Space] Play/Pause | [A] Auto-Play | [S] Skip Anomaly | [+] Faster | [-] Slower | [Q] Quit `.padEnd(cols, ' ');
+  process.stdout.write(`\x1b[40m\x1b[37m${controlsText}\x1b[0m\r`);
+  
+  process.stdout.write('\x1b8'); // Restore cursor
+}
+
+function showFooterAlert(msg, ms = 3000) {
+  footerMsg = msg;
+  drawFooter();
+  if (footerMsgTimeout) clearTimeout(footerMsgTimeout);
+  footerMsgTimeout = setTimeout(() => {
+    footerMsg = null;
+    drawFooter();
+  }, ms);
+}
+
+async function playBootAnimation(filePath) {
+  const cols = process.stdout.columns || 80;
+  const rows = process.stdout.rows || 24;
+  const msg = " [Press ENTER to skip] ";
+  
+  for (let i = 0; i < 3; i++) {
+    if (skipBoot) break;
+    process.stdout.write('\x1b[47m\x1b[2J');
+    process.stdout.write(`\x1b[${Math.floor(rows/2)};${Math.floor((cols-msg.length)/2)}H\x1b[30m${msg}\x1b[0m`);
+    await sleep(150);
+    if (skipBoot) break;
+    process.stdout.write('\x1b[40m\x1b[2J');
+    process.stdout.write(`\x1b[${Math.floor(rows/2)};${Math.floor((cols-msg.length)/2)}H\x1b[90m${msg}\x1b[0m`);
+    await sleep(150);
+  }
+  
+  process.stdout.write('\x1b[40m\x1b[2J\x1b[H'); // Clear entirely
+  isBooting = false;
+  drawFooter();
+  console.log(`\x1b[46m\x1b[37m 🎬 KEPOIN CINEMATIC REPLAY ENGINE \x1b[0m`);
+  console.log(`\x1b[36mFile:\x1b[0m ${filePath}\n`);
+}
+
+async function playAnomalyAnimation() {
+  const cols = process.stdout.columns || 80;
+  const rows = process.stdout.rows || 24;
+  
+  process.stdout.write('\x1b[41m\x1b[2J'); // Red background flash
+  const msg = " 💥 ANOMALY DETECTED 💥 ";
+  process.stdout.write(`\x1b[${Math.floor(rows/2)};${Math.floor((cols-msg.length)/2)}H\x1b[41m\x1b[37m\x1b[1m${msg}\x1b[0m`);
+  
+  await sleep(600);
+  
+  process.stdout.write('\x1b[40m\x1b[2J\x1b[H'); // Black background clear
+  for (const bufferedLine of slidingBuffer) {
+    console.log(bufferedLine);
+  }
+  drawFooter();
 }
 
 /**
@@ -16,19 +125,7 @@ export async function startReplay(filePath) {
     process.exit(1);
   }
 
-  const stream = fs.createReadStream(filePath);
-  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-
-  let state = 'PAUSED'; // PAUSED, PAGINATE, AUTOPLAY, SKIP
-  let speedDelay = 100; // ms per line during Auto-Play
-  let bulletTimeLines = 0; // Countdown for Matrix slow-mo
-  let linesPrintedSincePause = 0;
-  const slidingBuffer = []; // Circular buffer for Time-Skip feature
-
-  console.clear();
-  console.log(`\x1b[46m\x1b[37m 🎬 KEPOIN CINEMATIC REPLAY ENGINE \x1b[0m`);
-  console.log(`\x1b[36mFile:\x1b[0m ${filePath}\n`);
-  printPausedPrompt();
+  const cleanup = initAlternateScreen();
 
   if (process.stdin.isTTY) {
     process.stdin.setRawMode(true);
@@ -36,10 +133,16 @@ export async function startReplay(filePath) {
     process.stdin.on('data', (buffer) => {
       const key = buffer.toString().toLowerCase();
       
+      if (isBooting) {
+        if (key === '\r' || key === '\n') {
+          skipBoot = true;
+        }
+        return;
+      }
+      
       // Ctrl+C (0x03) or Q to Quit
       if (key === '\u0003' || key === 'q') {
-        console.log('\n\x1b[36m[kepoin:ui]\x1b[0m Replay terminated.');
-        process.exit(0);
+        cleanup();
       }
 
       if (key === ' ') {
@@ -48,30 +151,39 @@ export async function startReplay(filePath) {
           state = 'PAGINATE';
         } else {
           state = 'PAUSED';
-          printPausedPrompt();
         }
+        drawFooter();
       } else if (key === 'a') {
         state = 'AUTOPLAY';
-        console.log(`\n\x1b[35m[kepoin:ui] ▶ Auto-Play started. Controls: [+] Speed Up | [-] Slow Down | [Space] Pause | [S] Skip to Anomaly\x1b[0m\n`);
+        drawFooter();
       } else if (key === 's') {
         state = 'SKIP';
-        console.log(`\n\x1b[33m[kepoin:ui] ⏩ Fast-forwarding to next anomaly...\x1b[0m`);
+        drawFooter();
       } else if (key === '+' || key === '=') {
         speedDelay = Math.max(10, speedDelay - 30);
-        console.log(`\x1b[90mSpeed: ${speedDelay}ms/line\x1b[0m`);
+        drawFooter();
       } else if (key === '-' || key === '_') {
         speedDelay = Math.min(1000, speedDelay + 30);
-        console.log(`\x1b[90mSpeed: ${speedDelay}ms/line\x1b[0m`);
+        drawFooter();
+      } else {
+        // Unrecognized key triggers Red Alert and Bullet Time
+        bulletTimeLines = 3;
+        showFooterAlert('UNRECOGNIZED KEY! PLEASE USE THE CONTROLS BELOW');
       }
     });
   }
+
+  await playBootAnimation(filePath);
+
+  const stream = fs.createReadStream(filePath);
+  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
 
   // Iterate over the stream with O(1) memory footprint
   for await (const rawLine of rl) {
     let line = rawLine;
     let isAnomaly = false;
 
-    // 1. Regex Recolorizer (Restore ANSI)
+    // Regex Recolorizer (Restore ANSI)
     if (line.includes('▶ Executing:')) {
       line = line.replace('▶ Executing:', '\x1b[36m▶ Executing:\x1b[0m');
     } else if (line.includes('✔ Resolved:')) {
@@ -90,37 +202,29 @@ export async function startReplay(filePath) {
       slidingBuffer.shift();
     }
 
-    // 2. State Machine Routing
     if (state === 'SKIP') {
       if (isAnomaly) {
         state = 'AUTOPLAY';
         bulletTimeLines = 10;
-        
-        // Dump the historical context buffer to the screen
-        for (const bufferedLine of slidingBuffer) {
-          console.log(bufferedLine);
-        }
-        console.log(`\n\x1b[5m\x1b[41m\x1b[37m 💥 ANOMALY DETECTED - ENTERING BULLET TIME 💥 \x1b[0m\n`);
-        await sleep(500); // Cinematic Halt
+        await playAnomalyAnimation();
+        drawFooter();
       }
       continue; // Silently fast-forward if no anomaly
     }
 
     console.log(line);
 
-    // 3. Bullet Time Engager
     if (isAnomaly && state !== 'SKIP') {
-      console.log(`\n\x1b[5m\x1b[41m\x1b[37m 💥 ANOMALY DETECTED - ENTERING BULLET TIME 💥 \x1b[0m\n`);
       bulletTimeLines = 10;
-      await sleep(500);
+      await playAnomalyAnimation();
     }
 
-    // 4. Pacing Engine
+    // Pacing Engine
     if (state === 'PAGINATE') {
       linesPrintedSincePause++;
       if (linesPrintedSincePause >= 50) {
         state = 'PAUSED';
-        printPausedPrompt();
+        drawFooter();
       }
     } else if (state === 'AUTOPLAY') {
       if (bulletTimeLines > 0) {
@@ -137,6 +241,12 @@ export async function startReplay(filePath) {
     }
   }
 
-  console.log('\n\x1b[32m[kepoin:ui]\x1b[0m 🏁 Replay finished. Reached EOF.');
-  process.exit(0);
+  showFooterAlert('🏁 REPLAY FINISHED. REACHED EOF. PRESS Q TO QUIT', 9999999);
+  state = 'PAUSED';
+  drawFooter();
+  
+  // Keep alive until user quits
+  while (true) {
+    await sleep(1000);
+  }
 }
