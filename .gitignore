@@ -2,3 +2,5 @@
 devdocs
 kepoin-examples/
 test-sleep.js
+node_modules/
+*.tgz
