@@ -37,8 +37,9 @@ export function getConfig() {
 
   const enabled = env.KEPOIN_ENABLED !== 'false' && fileConfig.enabled !== false;
   const verbose = env.KEPOIN_VERBOSE === 'true' || fileConfig.verbose === true;
-  const outFile = env.KEPOIN_OUT_FILE || fileConfig.outFile || null;
-  const format = env.KEPOIN_FORMAT || fileConfig.format || (outFile ? 'json' : 'ansi');
+  const logDir = env.KEPOIN_LOG_DIR || fileConfig.logDir || null;
+  const spillDir = env.KEPOIN_SPILL_DIR || fileConfig.spillDir || null;
+  const format = env.KEPOIN_FORMAT || fileConfig.format || 'ansi';
   const maxDepth = parseInt(env.KEPOIN_MAX_DEPTH, 10) || fileConfig.maxDepth || 4;
   const slowThreshold = parseInt(env.KEPOIN_SLOW_THRESHOLD, 10) || fileConfig.slowThreshold || 0;
   
@@ -55,7 +56,8 @@ export function getConfig() {
   configCache = {
     enabled,
     verbose,
-    outFile,
+    logDir,
+    spillDir,
     format,
     maxDepth,
     slowThreshold,

@@ -4,14 +4,17 @@
 
 ## The CLI Flags
 
-`kepoin` can be invoked in two modes:
+`kepoin` can be invoked in three modes:
 1. **Target Mode:** `kepoin <script.js>` to execute and trace a specific file.
-2. **Hub Mode:** `kepoin listen` to boot the Telemetry Hub (WebSocket server) for cross-platform ingestion.
+2. **Replay Mode:** `kepoin replay <file>.spil` to launch the Interactive Cinematic Replay Engine.
+3. **Hub Mode:** `kepoin listen` to boot the Telemetry Hub (WebSocket server) for cross-platform ingestion.
 
 | Flag/Command | Expects | Description & Use Case |
 |---|---|---|
 | `listen` | Command | **Boot the Telemetry Hub.** Starts a local WebSocket server (port `54321`) to receive payloads from mobile bridges. |
-| `--out` | Filepath | **Stream logs to a file.** Useful for piping NDJSON to ingestion tools like Datadog or Kibana. Example: `--out=trace.jsonl` |
+| `replay <file>` | Command | **Boot the Cinematic Replay Engine.** Playback `.spil` trace files dynamically. |
+| `--log-dir`, `-ld` | Directory | **APM Integrations.** Stream machine-readable JSONL logs to a directory for data crunching. |
+| `--spill-dir`, `-sd` | Directory | **Human Readable Dumps.** Stream ANSI-stripped `.spil` logs to a directory for the Replay engine. |
 | `--format` | `ansi` or `json` | **Force log format.** By default, `kepoin` uses ANSI colors for the terminal and JSON for files. Use this to override. |
 | `--slow` | Milliseconds | **Threshold Tracing.** Only log functions that take longer than this threshold. Crucial for performance benchmarking and finding slow database queries. Example: `--slow=50` |
 | `--max-depth` | Integer | **Override serialization depth.** Default is 4. Increase this if you need to see deeper into nested objects, or decrease to save memory. |
@@ -23,9 +26,10 @@
 
 ## Environment Variables Mapping
 
-Every CLI flag can be controlled via Environment Variables. This is perfect for injecting `kepoin` into existing scripts (like `npm run dev` or `nodemon`) using `NODE_OPTIONS="--import kepoin"`.
+Every CLI flag can be controlled via Environment Variables. This is perfect for injecting `kepoin` into existing scripts (like `npm run dev` or `nodemon`) using `NODE_OPTIONS="--require kepoin/register"`.
 
-* `KEPOIN_OUT_FILE` ➔ Maps to `--out`
+* `KEPOIN_LOG_DIR` ➔ Maps to `--log-dir` (`-ld`)
+* `KEPOIN_SPILL_DIR` ➔ Maps to `--spill-dir` (`-sd`)
 * `KEPOIN_FORMAT` ➔ Maps to `--format`
 * `KEPOIN_SLOW_THRESHOLD` ➔ Maps to `--slow`
 * `KEPOIN_MAX_DEPTH` ➔ Maps to `--max-depth`
@@ -40,8 +44,9 @@ For teams that want to commit custom security dictionaries to source control, cr
 ```json
 {
   "enabled": true,
-  "outFile": "./logs/trace.jsonl",
-  "format": "json",
+  "logDir": "./logs",
+  "spillDir": "./logs",
+  "format": "ansi",
   "redactKeys": ["my_custom_internal_token", "aws_access_key"],
   "maxDepth": 5,
   "slowThreshold": 100

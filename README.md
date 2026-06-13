@@ -22,11 +22,14 @@ When you run `kepoin`, our **Time-Capped Asynchronous Bootloader** fires up inst
 ### 1. The Centralized Telemetry Hub
 `kepoin listen` boots a blazing-fast local WebSocket server that aggregates crash reports and diagnostics from mobile applications into a single beautifully colored terminal stream, or NDJSON file output.
 
-### 2. V8 Lexical Scope Scraper (Backend)
+### 2. The Cinematic Replay Engine
+When debugging distributed clusters or multi-day test runs, developers can dump human-readable execution streams using `--spill-dir`. Later, you can run `kepoin replay <file>.spil` to boot an **Interactive Matrix-Style Replay Engine** that auto-plays thousands of traces, with adjustable speeds, and a sliding context buffer that automatically triggers a "Bullet Time" slow-mo animation upon detecting an anomaly.
+
+### 3. V8 Lexical Scope Scraper (Backend)
 Standard Node.js crash traces tell you *where* the app died. `kepoin` tells you *why*.
 By booting with `--require kepoin/register`, our engine programmatically hooks into `node:inspector` upon crashing, safely dumping the **local variables and lexical scope** mapped to the exact line of failure.
 
-### 3. Mobile App Crash Bridges
+### 4. Mobile App Crash Bridges
 
 > [!WARNING]
 > **Experimental:** Mobile support is currently experimental and subject to change.
@@ -104,7 +107,9 @@ When running `kepoin <script.js>` or `kepoin listen`, you can pass the following
 | Flag/Command | Expects | Description & Use Case |
 |---|---|---|
 | `listen` | Command | **Boot the Telemetry Hub.** Starts a local WebSocket server (port `54321`). |
-| `--out=<file>` | Filepath | **Stream logs to a file.** Useful for piping NDJSON to Datadog. |
+| `replay <file>` | Command | **Boot the Cinematic Replay Engine.** Playback `.spil` trace files dynamically. |
+| `--log-dir=<path>` | Directory | **APM Integrations.** Stream machine-readable JSONL files for massive data crunching. |
+| `--spill-dir=<path>` | Directory | **Human Readable Dumps.** Stream ANSI-stripped `.spil` logs for the Replay engine. |
 | `--slow=<ms>` | Milliseconds | **Threshold Tracing.** Only log functions that take longer than this threshold. |
 | `--max-depth=<N>` | Integer | **Override serialization depth.** Default is 4. |
 | `--redact=<keys>` | Strings | **Custom Redaction Dictionary.** Add extra keys to scrub. |

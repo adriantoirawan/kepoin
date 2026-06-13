@@ -35,14 +35,18 @@ function printUsage() {
 
 \x1b[1mUSAGE\x1b[0m
   $ kepoin [options] <script.js>
+  $ kepoin replay <file.spil>   # Launch the Interactive Cinematic Replay Engine
   $ kepoin listen               # Start the Centralized Telemetry Hub for Mobile (Experimental)\x1b[0m
 
 \x1b[1mEXAMPLE COMMANDS\x1b[0m
   \x1b[90m# Trace local development in the terminal\x1b[0m
   $ kepoin server.js
 
-  \x1b[90m# Hunt for performance bottlenecks (only log methods taking > 50ms)\x1b[0m
-  $ kepoin --out=trace.jsonl --slow=50 server.js
+  \x1b[90m# Hunt for bottlenecks and stream human-readable traces to a directory\x1b[0m
+  $ kepoin --spill-dir=./logs --slow=50 server.js
+
+  \x1b[90m# Later, replay the massive .spil file dynamically with Matrix Auto-Play\x1b[0m
+  $ kepoin replay ./logs/execution-2026-10-14.spil
 
   \x1b[90m# Protect custom sensitive tokens from being logged\x1b[0m
   $ kepoin --redact="stripe_key,db_pass" script.js
@@ -68,12 +72,14 @@ function printHelp() {
 
 \x1b[1mUSAGE\x1b[0m
   $ kepoin [options] <script.js>
+  $ kepoin replay <file.spil>   # Launch the Interactive Cinematic Replay Engine
   $ kepoin listen               # Start the Centralized Telemetry Hub for Mobile (Experimental)\x1b[0m
 
 \x1b[1mOPTIONS\x1b[0m
-  --out=<file>      Stream logs to an NDJSON file (e.g., trace.jsonl)
-  --format=<fmt>    Force log format ('ansi' or 'json'). Defaults to ansi for terminal, json for files.
-  --slow=<ms>       Threshold Tracing: Only log functions that take longer than <ms> \x1b[1mmilliseconds\x1b[0m.
+  --log-dir=<path>, -ld     Stream machine-readable JSON logs to <path>/telemetry-YYYY-MM-DD.jsonl
+  --spill-dir=<path>, -sd   Stream human-readable execution traces to <path>/execution-YYYY-MM-DD.spil
+  --format=<fmt>    Force terminal log format ('ansi' or 'json'). Defaults to ansi.
+  --slow=<ms>       Threshold Tracing: Only log functions that take longer than <ms> milliseconds.
   --max-depth=<N>   Override the maximum object serialization depth (default: 4).
   --redact=<keys>   Comma-separated list of extra keys to redact (e.g., "ssn,api_key").
   --verbose         Print diagnostic internal kepoin logs.
@@ -86,7 +92,8 @@ function printHelp() {
 
 \x1b[1mENVIRONMENT VARIABLES MAPPING\x1b[0m
   You can configure kepoin via \x1b[33mkepoin.json\x1b[0m or by using these environment variables:
-  \x1b[36mKEPOIN_OUT_FILE\x1b[0m       ➔ Maps to \x1b[33m--out\x1b[0m
+  \x1b[36mKEPOIN_LOG_DIR\x1b[0m        ➔ Maps to \x1b[33m--log-dir (-ld)\x1b[0m
+  \x1b[36mKEPOIN_SPILL_DIR\x1b[0m      ➔ Maps to \x1b[33m--spill-dir (-sd)\x1b[0m
   \x1b[36mKEPOIN_FORMAT\x1b[0m         ➔ Maps to \x1b[33m--format\x1b[0m
   \x1b[36mKEPOIN_SLOW_THRESHOLD\x1b[0m ➔ Maps to \x1b[33m--slow\x1b[0m
   \x1b[36mKEPOIN_MAX_DEPTH\x1b[0m      ➔ Maps to \x1b[33m--max-depth\x1b[0m
@@ -139,7 +146,13 @@ Then you can open the files to review the code and run them:
    the fast function is ignored, helping you isolate bottlenecks instantly.
    \x1b[33mCommand:\x1b[0m npx kepoin --slow=100 ./kepoin-examples/03-performance-audit/demo.cjs
 
-\x1b[1m4. Corrupted Configuration Guardrails\x1b[0m
+\x1b[1m4. The Cinematic Replay Engine\x1b[0m
+   Generates a massive 1000-line \`.spil\` trace file that you can replay
+   interactively like a movie, featuring a dramatic slow-mo anomaly effect.
+   \x1b[33mStep 1:\x1b[0m npx kepoin --spill-dir=./logs ./kepoin-examples/06-cinematic-replay/demo.cjs
+   \x1b[33mStep 2:\x1b[0m npx kepoin replay ./logs/execution-<date>.spil
+
+\x1b[1m5. Corrupted Configuration Guardrails\x1b[0m
    Demonstrates kepoin's graceful fallback when encountering a malformed \`kepoin.json\`
    file, issuing a gentle warning instead of crashing the process.
    \x1b[33mCommand:\x1b[0m cd kepoin-examples/04-corrupted-config && npx kepoin demo.js
@@ -184,7 +197,7 @@ if (args.includes('-v') || args.includes('--version')) {
   process.exit(0);
 }
 
-const KEPOIN_FLAGS = ['--out', '--format', '--slow', '--max-depth', '--redact', '--verbose', '--disable', '--ws-port', '--examples', '--init-examples', '--help', '--version', '-h', '-v'];
+const KEPOIN_FLAGS = ['--log-dir', '-ld', '--spill-dir', '-sd', '--format', '--slow', '--max-depth', '--redact', '--verbose', '--disable', '--ws-port', '--examples', '--init-examples', '--help', '--version', '-h', '-v'];
 
 function levenshtein(a, b) {
   const matrix = [];
@@ -214,8 +227,23 @@ for (let i = 0; i < args.length; i++) {
   const arg = args[i];
 
   if (isParsingKepoinArgs) {
-    if (arg.startsWith('--out=')) {
-      envVars.KEPOIN_OUT_FILE = arg.split('=')[1];
+    if (arg.startsWith('--log-dir=')) {
+      envVars.KEPOIN_LOG_DIR = arg.split('=')[1];
+      providedKepoinFlags.push(arg);
+      continue;
+    }
+    if (arg.startsWith('-ld=')) {
+      envVars.KEPOIN_LOG_DIR = arg.split('=')[1];
+      providedKepoinFlags.push(arg);
+      continue;
+    }
+    if (arg.startsWith('--spill-dir=')) {
+      envVars.KEPOIN_SPILL_DIR = arg.split('=')[1];
+      providedKepoinFlags.push(arg);
+      continue;
+    }
+    if (arg.startsWith('-sd=')) {
+      envVars.KEPOIN_SPILL_DIR = arg.split('=')[1];
       providedKepoinFlags.push(arg);
       continue;
     }
@@ -258,6 +286,10 @@ for (let i = 0; i < args.length; i++) {
     if (arg === 'listen' && i === 0) {
       continue;
     }
+
+    if (arg === 'replay' && i === 0) {
+      continue;
+    }
     
     // Strict Flag Parsing: check if it's an unrecognized flag
     if (arg.startsWith('-')) {
@@ -296,7 +328,7 @@ for (let i = 0; i < args.length; i++) {
   scriptArgs.push(arg);
 }
 
-if (scriptArgs.length === 0 && args[0] !== 'listen') {
+if (scriptArgs.length === 0 && args[0] !== 'listen' && args[0] !== 'replay') {
   // Empathic "Missing Script" Error Flow
   if (providedKepoinFlags.length > 0) {
     console.log(`\x1b[33m[kepoin:info]\x1b[0m Received flags: ${providedKepoinFlags.join(' ')}`);
@@ -383,7 +415,8 @@ function printBanner(updateMessage) {
     console.log(`\x1b[36m[kepoin:info]\x1b[0m WebSocket Port: ${envVars.KEPOIN_WS_PORT || 54321}`);
   } else {
     console.log(`\x1b[36m[kepoin:info]\x1b[0m Target: ${scriptArgs.join(' ')}`);
-    if (envVars.KEPOIN_OUT_FILE) console.log(`\x1b[36m[kepoin:info]\x1b[0m Output: ${envVars.KEPOIN_OUT_FILE}`);
+    if (envVars.KEPOIN_LOG_DIR) console.log(`[kepoin:info] APM Log Dir: ${envVars.KEPOIN_LOG_DIR}`);
+    if (envVars.KEPOIN_SPILL_DIR) console.log(`[kepoin:info] Spill Dir: ${envVars.KEPOIN_SPILL_DIR}`);
     if (envVars.KEPOIN_REDACT_KEYS) console.log(`\x1b[36m[kepoin:info]\x1b[0m Redaction: ${envVars.KEPOIN_REDACT_KEYS}`);
     if (envVars.KEPOIN_SLOW_THRESHOLD) console.log(`\x1b[36m[kepoin:info]\x1b[0m Threshold: >${envVars.KEPOIN_SLOW_THRESHOLD}ms`);
   }
@@ -402,6 +435,15 @@ async function bootKepoin() {
     Object.assign(process.env, envVars);
     import('../src/server/hub.js').then(({ startHub }) => {
       startHub(finalEnv);
+    });
+  } else if (args[0] === 'replay') {
+    const replayFile = scriptArgs[1];
+    if (!replayFile || !replayFile.endsWith('.spil')) {
+      console.error(`\x1b[31m[kepoin:error]\x1b[0m Missing or invalid trace file. Usage: \x1b[1mkepoin replay <file.spil>\x1b[0m`);
+      process.exit(1);
+    }
+    import('../src/core/replay.js').then(({ startReplay }) => {
+      startReplay(replayFile);
     });
   } else {
     // Spawn the child node process

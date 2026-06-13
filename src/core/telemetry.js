@@ -113,9 +113,9 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
                   error: err ? err.message : 'Unknown Promise Rejection'
                 });
               }
-              throw err;
+              // Do not rethrow here, we are just side-effecting. The original promise throws to the user.
             }
-          );
+          ).catch(() => {});
         } else {
           const duration = performance.now() - startTime;
           if (duration >= config.slowThreshold) {
