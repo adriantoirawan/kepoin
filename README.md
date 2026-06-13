@@ -12,6 +12,9 @@
 
 When you run `kepoin`, our **Time-Capped Asynchronous Bootloader** fires up instantly, painting a gorgeous ASCII diagnostic banner while checking for updates without *ever* delaying your application's start time.
 
+> [!TIP]
+> **Production Environments:** kepoin is deeply forensic. Active tracing in production involves performance & security tradeoffs. Read our [Production Tradeoffs Analysis](./docs/reference/production-tradeoffs.md) before deploying.
+
 ---
 
 ## 🌟 Key Features
@@ -24,6 +27,10 @@ Standard Node.js crash traces tell you *where* the app died. `kepoin` tells you 
 By booting with `--require kepoin/register`, our engine programmatically hooks into `node:inspector` upon crashing, safely dumping the **local variables and lexical scope** mapped to the exact line of failure.
 
 ### 3. Mobile App Crash Bridges
+
+> [!WARNING]
+> **Experimental:** Mobile support is currently experimental and subject to change.
+
 We provide import-safe, zero-config hooks that intercept unhandled exceptions before frameworks swallow them.
 * **`import 'kepoin/mobile'`**: Natively binds to JavaScriptCore/Hermes `global.ErrorUtils` for React Native & Expo, streaming crash autopsies directly back to the Hub on your local machine.
 
@@ -77,6 +84,10 @@ NODE_OPTIONS="--require kepoin/register" npm run start
 > **The Module Boundary:** To maintain 0% performance overhead, `kepoin` operates by wrapping your `module.exports`. This means it only traces **exported functions** that are imported and called from **another file**. It does *not* trace local function calls executing internally within the same file.
 
 ### 3. Injecting into Mobile (React Native/Expo)
+
+> [!WARNING]
+> **Experimental:** Mobile support is currently experimental and subject to change.
+
 Import the mobile adapter in `App.js`:
 ```javascript
 import { initKepoinMobile } from 'kepoin/mobile';
@@ -127,6 +138,13 @@ To dive deeply into the advanced capabilities and API contracts, consult our ded
 
 * [The Forensic Autopsy](./docs/architecture/the-forensic-autopsy.md): Learn how to interpret the module cache dump during a crash.
 * [Security & Redaction](./docs/architecture/security-and-redaction.md): Understand the $O(1)$ sanitizer, WeakSet protection, and the Hard Kill Switch.
+
+---
+
+## 🐛 Bug Reports
+
+If you encounter an issue or bug, please report it to our official issue tracker:
+[https://github.com/adriantoirawan/kepoin/issues](https://github.com/adriantoirawan/kepoin/issues)
 
 📄 License
 MIT © Adrianto Puji Irawan

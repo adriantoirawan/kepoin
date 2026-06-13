@@ -35,7 +35,7 @@ function printUsage() {
 
 \x1b[1mUSAGE\x1b[0m
   $ kepoin [options] <script.js>
-  $ kepoin listen               # Start the Centralized Telemetry Hub for Mobile\x1b[0m
+  $ kepoin listen               # Start the Centralized Telemetry Hub for Mobile (Experimental)\x1b[0m
 
 \x1b[1mEXAMPLE COMMANDS\x1b[0m
   \x1b[90m# Trace local development in the terminal\x1b[0m
@@ -51,6 +51,10 @@ function printUsage() {
   * Run \x1b[33mkepoin --help\x1b[0m for the full list of options and environment variables.
   * Deep documentation is available in \x1b[34m/docs/architecture\x1b[0m, \x1b[34m/docs/babysteps\x1b[0m, and \x1b[34m/docs/reference\x1b[0m.
   * Online: \x1b[34m${pkg.homepage.replace('#readme', '')}\x1b[0m
+  * Bugs:   \x1b[34mhttps://github.com/adriantoirawan/kepoin/issues\x1b[0m
+
+\x1b[33m[kepoin:tip]\x1b[0m \x1b[35mkepoin is deeply forensic. Active tracing in production involves performance & security tradeoffs.\x1b[0m
+\x1b[33m[kepoin:tip]\x1b[0m Read the analysis: \x1b[34mhttps://github.com/adriantoirawan/kepoin/blob/main/docs/reference/production-tradeoffs.md\x1b[0m
 `);
 }
 
@@ -64,7 +68,7 @@ function printHelp() {
 
 \x1b[1mUSAGE\x1b[0m
   $ kepoin [options] <script.js>
-  $ kepoin listen               # Start the Centralized Telemetry Hub for Mobile\x1b[0m
+  $ kepoin listen               # Start the Centralized Telemetry Hub for Mobile (Experimental)\x1b[0m
 
 \x1b[1mOPTIONS\x1b[0m
   --out=<file>      Stream logs to an NDJSON file (e.g., trace.jsonl)
@@ -104,6 +108,10 @@ function printHelp() {
   * Run \x1b[33mkepoin --help\x1b[0m for the full list of options and environment variables.
   * Deep documentation is available in \x1b[34m/docs/architecture\x1b[0m, \x1b[34m/docs/babysteps\x1b[0m, and \x1b[34m/docs/reference\x1b[0m.
   * Online: \x1b[34m${pkg.homepage.replace('#readme', '')}\x1b[0m
+  * Bugs:   \x1b[34mhttps://github.com/adriantoirawan/kepoin/issues\x1b[0m
+
+\x1b[33m[kepoin:tip]\x1b[0m \x1b[35mkepoin is deeply forensic. Active tracing in production involves performance & security tradeoffs.\x1b[0m
+\x1b[33m[kepoin:tip]\x1b[0m Read the analysis: \x1b[34mhttps://github.com/adriantoirawan/kepoin/blob/main/docs/reference/production-tradeoffs.md\x1b[0m
 `);
 }
 
@@ -379,6 +387,9 @@ function printBanner(updateMessage) {
     if (envVars.KEPOIN_REDACT_KEYS) console.log(`\x1b[36m[kepoin:info]\x1b[0m Redaction: ${envVars.KEPOIN_REDACT_KEYS}`);
     if (envVars.KEPOIN_SLOW_THRESHOLD) console.log(`\x1b[36m[kepoin:info]\x1b[0m Threshold: >${envVars.KEPOIN_SLOW_THRESHOLD}ms`);
   }
+  console.log(`\x1b[36m[kepoin:info]\x1b[0m Bugs: https://github.com/adriantoirawan/kepoin/issues`);
+  console.log(`\x1b[33m[kepoin:tip]\x1b[0m \x1b[35mkepoin is deeply forensic. Active tracing in production involves performance & security tradeoffs.\x1b[0m`);
+  console.log(`\x1b[33m[kepoin:tip]\x1b[0m Read the analysis: \x1b[34mhttps://github.com/adriantoirawan/kepoin/blob/main/docs/reference/production-tradeoffs.md\x1b[0m`);
   console.log(); // Blank line for padding
 }
 

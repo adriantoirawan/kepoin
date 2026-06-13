@@ -49,3 +49,10 @@ For teams that want to commit custom security dictionaries to source control, cr
 ```
 
 If a `kepoin.json` file contains invalid JSON, the library will gracefully warn you and fall back to the default settings rather than crashing your application.
+
+---
+
+## Further Reading & Support
+
+* **[Production Tradeoffs Analysis](./production-tradeoffs.md):** Understand the security and performance implications of active tracing in production.
+* **[Bug Reports](https://github.com/adriantoirawan/kepoin/issues):** Encountered an issue? Let us know on our official tracker.

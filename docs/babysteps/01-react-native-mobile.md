@@ -1,5 +1,8 @@
 # Babystep 01: React Native & Expo Mobile App
 
+> [!WARNING]
+> **Experimental:** Mobile support is currently experimental and subject to change.
+
 Welcome! Let's connect your React Native mobile application to the `kepoin` Telemetry Hub in under 60 seconds. 
 
 By the end of this guide, any fatal crash on your phone will magically appear on your computer with full stack trace context.
@@ -39,3 +42,10 @@ Intentionally write some bad code inside a `useEffect` or an `onPress` handler:
 <Button title="Crash Me" onPress={() => { nonexistentFunction() }} />
 ```
 Tap the button. Your app will silently fail, but if you look at your terminal where `kepoin listen` is running, you will see a gorgeous crash payload!
+
+---
+
+## Further Reading & Support
+
+* **[Production Tradeoffs Analysis](../reference/production-tradeoffs.md):** Understand the security and performance implications of active tracing in production.
+* **[Bug Reports](https://github.com/adriantoirawan/kepoin/issues):** Encountered an issue? Let us know on our official tracker.
