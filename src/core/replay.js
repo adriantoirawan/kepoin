@@ -3,7 +3,8 @@ import readline from 'node:readline';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-let state = 'PAUSED'; // PAUSED, PAGINATE, AUTOPLAY, SKIP
+let state = 'PLAYING'; // PAUSED, PLAYING, PAGINATE, SKIP
+let previousState = 'PLAYING';
 let speedDelay = 100; // ms per line during Auto-Play
 let bulletTimeLines = 0; // Countdown for Matrix slow-mo
 let linesPrintedSincePause = 0;
@@ -60,7 +61,7 @@ function drawFooter() {
   
   // Footer Line 2 (Controls)
   process.stdout.write(`\x1b[${rows};1H`);
-  const controlsText = ` [Space] Play/Pause | [A] Auto-Play | [S] Skip to Anomaly | [+] Faster | [-] Slower | [Q] Quit `.padEnd(cols, ' ');
+  const controlsText = ` [Space] Play/Pause | [N] Next 50 Lines | [S] Skip to Anomaly | [+] Faster | [-] Slower | [Q] Quit `.padEnd(cols, ' ');
   process.stdout.write(`\x1b[0m\x1b[37m${controlsText}\x1b[0m\r`);
   
   process.stdout.write('\x1b8'); // Restore cursor
@@ -136,14 +137,17 @@ export async function startReplay(filePath) {
 
       if (key === ' ') {
         if (state === 'PAUSED') {
-          linesPrintedSincePause = 0;
-          state = 'PAGINATE';
+          state = 'PLAYING';
         } else {
           state = 'PAUSED';
         }
         drawFooter();
-      } else if (key === 'a') {
-        state = 'AUTOPLAY';
+      } else if (key === 'n') {
+        if (state !== 'PAGINATE') {
+          previousState = state;
+          state = 'PAGINATE';
+          linesPrintedSincePause = 0;
+        }
         drawFooter();
       } else if (key === 's') {
         state = 'SKIP';
@@ -196,7 +200,7 @@ export async function startReplay(filePath) {
 
     if (state === 'SKIP') {
       if (isAnomaly) {
-        state = 'AUTOPLAY';
+        state = 'PLAYING';
         bulletTimeLines = 10;
         await playAnomalyAnimation();
         drawFooter();
@@ -215,10 +219,10 @@ export async function startReplay(filePath) {
     if (state === 'PAGINATE') {
       linesPrintedSincePause++;
       if (linesPrintedSincePause >= 50) {
-        state = 'PAUSED';
+        state = previousState;
         drawFooter();
       }
-    } else if (state === 'AUTOPLAY') {
+    } else if (state === 'PLAYING') {
       if (bulletTimeLines > 0) {
         bulletTimeLines--;
         await sleep(1000); // 1 line per sec during Bullet Time
