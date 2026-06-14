@@ -52,12 +52,17 @@ Because `kepoin` recursively proxies and tracks the execution pipeline, it stric
 ## 📦 Installation
 
 ```bash
-# Install globally (Recommended for CLI Hub usage)
+# Install globally for standalone tools (like the Replay Engine viewer)
 npm install -g kepoin
 
-# OR install locally as a dev dependency
+# Install locally as a dev dependency to trace your app
 npm install kepoin --save-dev
 ```
+
+> [!TIP]
+> **`npx kepoin` vs `kepoin`:**
+> Use `npx kepoin` when running project-specific commands (like `listen` or executing test scripts). This ensures you use the exact version installed in your local `node_modules`, preventing version mismatches between the CLI and your project's injected hooks.
+> Use the global `kepoin replay <file.spil>` command when you are using the Cinematic Replay Engine as a standalone log viewer on your machine.
 
 ---
 
