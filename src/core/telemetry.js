@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import { logEvent, verboseLog } from '../utils/logger.js';
+import { logEvent, verboseLog, extractSourceSnippet } from '../utils/logger.js';
 import { getConfig } from '../utils/config.js';
 
 const RAW_TARGET = Symbol('KEPOIN_RAW_TARGET');
@@ -11,6 +11,30 @@ function isNativeSafe(target) {
   // Try to determine if the object is something that will aggressively crash
   // if proxied, like Promises or Streams. If it has a RAW_TARGET, we unwrap it.
   return true;
+}
+
+function extractCallerInfo(stackObj) {
+  const stack = stackObj ? stackObj.stack : new Error().stack;
+  if (!stack) return null;
+  const lines = stack.split('\n');
+  let targetLine = null;
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].includes('kepoin/src/core/telemetry.js') && !lines[i].includes('kepoin/src/utils/logger.js')) {
+      targetLine = lines[i];
+      break;
+    }
+  }
+  if (!targetLine) return null;
+
+  const match = targetLine.match(/at (?:(.+?)\s+\()?(?:file:\/\/\/)?(.+?):(\d+):\d+\)?/);
+  if (match) {
+    const funcName = match[1] || 'Anonymous';
+    const filePath = match[2];
+    const lineNumber = parseInt(match[3], 10);
+    const fileName = filePath.split('/').pop() || filePath.split('\\').pop();
+    return { name: funcName, file: filePath, line: lineNumber, formatted: `${funcName} in ${fileName}:${lineNumber}` };
+  }
+  return null;
 }
 
 /**
@@ -68,6 +92,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
     apply(obj, thisArg, args) {
       const callId = ++callIdCounter;
       const startTime = performance.now();
+      const callerInfo = extractCallerInfo();
       
       if (config.slowThreshold === 0) {
         logEvent({
@@ -75,6 +100,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
           location,
           target: name,
           status: 'Executing',
+          caller: callerInfo ? callerInfo.formatted : null,
           message: `Function call with ${args.length} args`
         });
       }
@@ -104,12 +130,19 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
             (err) => {
               const duration = performance.now() - startTime;
               if (duration >= config.slowThreshold) {
+                const errCaller = extractCallerInfo(err);
+                const snippet = errCaller ? extractSourceSnippet(errCaller.file, errCaller.line) : null;
+                let argsDump;
+                try { argsDump = JSON.stringify(args); } catch (e) { argsDump = '[Circular or Unserializable]'; }
+                
                 logEvent({
                   callId,
                   location,
                   target: name,
                   status: 'Failed',
                   duration,
+                  argsDump,
+                  sourceSnippet: snippet,
                   error: err ? err.message : 'Unknown Promise Rejection'
                 });
               }
@@ -135,12 +168,19 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
       } catch (err) {
         const duration = performance.now() - startTime;
         if (duration >= config.slowThreshold) {
+          const errCaller = extractCallerInfo(err);
+          const snippet = errCaller ? extractSourceSnippet(errCaller.file, errCaller.line) : null;
+          let argsDump;
+          try { argsDump = JSON.stringify(args); } catch (e) { argsDump = '[Circular or Unserializable]'; }
+
           logEvent({
             callId,
             location,
             target: name,
             status: 'Failed',
             duration,
+            argsDump,
+            sourceSnippet: snippet,
             error: err ? err.message : 'Unknown Synchronous Error'
           });
         }

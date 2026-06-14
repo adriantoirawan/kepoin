@@ -268,11 +268,20 @@ export async function startReplay(filePath) {
     // Regex Recolorizer (Restore ANSI)
     if (line.includes('▶ Executing:')) {
       line = line.replace('▶ Executing:', '\x1b[36m▶ Executing:\x1b[0m');
+      line = line.replace(/\(called by (.+)\)/, '\x1b[90m(called by $1)\x1b[0m');
     } else if (line.includes('✔ Resolved:')) {
       line = line.replace('✔ Resolved:', '\x1b[32m✔ Resolved:\x1b[0m');
     } else if (line.includes('✖ Failed:')) {
       line = line.replace('✖ Failed:', '\x1b[31m✖ Failed:\x1b[0m');
       isAnomaly = true;
+    } else if (line.includes('Arguments:')) {
+      line = line.replace('Arguments:', '\x1b[33mArguments:\x1b[0m');
+    } else if (line.includes('Code Context:')) {
+      line = line.replace('Code Context:', '\x1b[33mCode Context:\x1b[0m');
+    } else if (line.match(/> \s*\d+ \|/)) {
+      line = line.replace(/(> \s*\d+ \| .+)/, '\x1b[31m$1\x1b[0m');
+    } else if (line.match(/  \s*\d+ \|/)) {
+      line = line.replace(/(  \s*\d+ \| .+)/, '\x1b[90m$1\x1b[0m');
     }
     
     // Restore Gutter styling (Dim up to the │ symbol)
@@ -295,7 +304,7 @@ export async function startReplay(filePath) {
     if (state === 'SKIP') {
       if (isAnomaly) {
         state = 'PLAYING';
-        bulletTimeLines = 10;
+        bulletTimeLines = 15;
         await playAnomalyAnimation();
         drawFooter();
       }
@@ -307,7 +316,7 @@ export async function startReplay(filePath) {
     }
 
     if (isAnomaly && state !== 'SKIP') {
-      bulletTimeLines = 10;
+      bulletTimeLines = 15;
       await playAnomalyAnimation();
     }
 

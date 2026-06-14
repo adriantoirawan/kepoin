@@ -168,21 +168,63 @@ export function verboseLog(message) {
 }
 
 /**
+ * Extracts a 5-line source code snippet around a specific line number.
+ */
+export function extractSourceSnippet(filePath, lineNumber) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return null;
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n');
+    const start = Math.max(0, lineNumber - 3);
+    const end = Math.min(lines.length, lineNumber + 2);
+    
+    let snippet = '';
+    for (let i = start; i < end; i++) {
+      const isCrashLine = (i + 1) === lineNumber;
+      const lineNumStr = String(i + 1).padStart(4, ' ');
+      if (isCrashLine) {
+        snippet += `\x1b[31m> ${lineNumStr} | ${lines[i]}\x1b[0m\n`;
+      } else {
+        snippet += `\x1b[90m  ${lineNumStr} | ${lines[i]}\x1b[0m\n`;
+      }
+    }
+    return snippet.trimEnd();
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
  * Formats a payload for ANSI terminal output using the injected Gutter.
  */
 function formatAnsi(payload) {
-  const { callId, location, status, message, duration, target, error, consoleTrace } = payload;
+  const { callId, location, status, message, duration, target, error, consoleTrace, caller, argsDump, sourceSnippet } = payload;
   const timeStr = duration ? ` (+${duration.toFixed(2)}ms)` : '';
   
   const idPrefix = callId ? `\x1b[36m[#${callId}]\x1b[0m ` : '';
-  let prefix = `\x1b[90m${consoleTrace}\x1b[0m ${idPrefix}[${location || 'unknown'}] `;
+  const gutterStr = `\x1b[90m${consoleTrace}\x1b[0m `;
+  const locationStr = `[${location || 'unknown'}]`;
+  // Calculate visual length of idPrefix without ANSI codes
+  const idPrefixRawLen = callId ? `[#${callId}] `.length : 0;
+  const paddingStr = ' '.repeat(locationStr.length + idPrefixRawLen + 1);
+
+  let prefix = `${gutterStr}${idPrefix}${locationStr} `;
   
   if (status === 'Executing') {
-    prefix += `\x1b[36m▶ Executing:\x1b[0m ${target}`;
+    prefix += `\x1b[36m▶ Executing:\x1b[0m ${target}${caller ? ` \x1b[90m(called by ${caller})\x1b[0m` : ''}`;
   } else if (status === 'Resolved') {
     prefix += `\x1b[32m✔ Resolved:\x1b[0m  ${target}${timeStr}`;
   } else if (status === 'Failed') {
     prefix += `\x1b[31m✖ Failed:\x1b[0m    ${target}${timeStr} - ${error || message}`;
+    
+    if (argsDump) {
+      prefix += `\n${gutterStr}${paddingStr} \x1b[33mArguments:\x1b[0m ${argsDump}`;
+    }
+    if (sourceSnippet) {
+      prefix += `\n${gutterStr}${paddingStr} \x1b[33mCode Context:\x1b[0m\n`;
+      const lines = sourceSnippet.split('\n');
+      prefix += lines.map(line => `${gutterStr}${paddingStr}   ${line}`).join('\n');
+    }
   } else {
     prefix += `[${status}] ${message || ''}`;
   }
