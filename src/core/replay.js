@@ -64,7 +64,7 @@ function drawFooter() {
   
   // Footer Line 2 (Controls)
   process.stdout.write(`\x1b[${rows};1H`);
-  const controlsText = ` [Space] Play/Pause | [N] Next 50 Lines | [S] Skip to Anomaly | [+] Faster | [-] Slower | [Q] Quit `.padEnd(cols, ' ');
+  const controlsText = ` [Space] Play/Pause | [N] Next 50 Lines | [S] Next Anomaly | [P] Prev Anomaly | [+] Faster | [-] Slower | [Q] Quit `.padEnd(cols, ' ');
   process.stdout.write(`\x1b[0m\x1b[37m${controlsText}\x1b[0m\r`);
   
   process.stdout.write('\x1b8'); // Restore cursor
@@ -177,6 +177,32 @@ export async function startReplay(filePath) {
         scrollOffset = 0;
         state = 'SKIP';
         drawFooter();
+      } else if (key === 'p') {
+        const rows = process.stdout.rows || 24;
+        const canvasHeight = Math.max(1, rows - 2);
+        const topVisibleIndex = Math.max(0, historyBuffer.length - canvasHeight - scrollOffset);
+        
+        let foundIndex = -1;
+        for (let i = topVisibleIndex - 1; i >= 0; i--) {
+          if (historyBuffer[i].includes('✖ Failed:')) {
+            foundIndex = i;
+            break;
+          }
+        }
+
+        if (foundIndex !== -1) {
+          if (state !== 'SCROLLING') {
+            previousState = state;
+            state = 'SCROLLING';
+          }
+          // Center the anomaly roughly in the middle of the screen
+          scrollOffset = Math.max(0, historyBuffer.length - foundIndex - Math.floor(canvasHeight / 2));
+          renderScrollback();
+          drawFooter();
+        } else {
+          process.stdout.write('\x07');
+          showFooterAlert('NO PREVIOUS ANOMALIES FOUND IN HISTORY BUFFER');
+        }
       } else if (key === '\u001b[a') { // Up Arrow
         if (state !== 'SCROLLING') {
           previousState = state;
