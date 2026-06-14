@@ -60,8 +60,8 @@ function drawFooter() {
   
   // Footer Line 2 (Controls)
   process.stdout.write(`\x1b[${rows};1H`);
-  const controlsText = ` [Space] Play/Pause | [A] Auto-Play | [S] Skip Anomaly | [+] Faster | [-] Slower | [Q] Quit `.padEnd(cols, ' ');
-  process.stdout.write(`\x1b[40m\x1b[37m${controlsText}\x1b[0m\r`);
+  const controlsText = ` [Space] Play/Pause | [A] Auto-Play | [S] Skip to Anomaly | [+] Faster | [-] Slower | [Q] Quit `.padEnd(cols, ' ');
+  process.stdout.write(`\x1b[0m\x1b[37m${controlsText}\x1b[0m\r`);
   
   process.stdout.write('\x1b8'); // Restore cursor
 }
@@ -77,22 +77,7 @@ function showFooterAlert(msg, ms = 3000) {
 }
 
 async function playBootAnimation(filePath) {
-  const cols = process.stdout.columns || 80;
-  const rows = process.stdout.rows || 24;
-  const msg = " [Press ENTER to skip] ";
-  
-  for (let i = 0; i < 3; i++) {
-    if (skipBoot) break;
-    process.stdout.write('\x1b[47m\x1b[2J');
-    process.stdout.write(`\x1b[${Math.floor(rows/2)};${Math.floor((cols-msg.length)/2)}H\x1b[30m${msg}\x1b[0m`);
-    await sleep(150);
-    if (skipBoot) break;
-    process.stdout.write('\x1b[40m\x1b[2J');
-    process.stdout.write(`\x1b[${Math.floor(rows/2)};${Math.floor((cols-msg.length)/2)}H\x1b[90m${msg}\x1b[0m`);
-    await sleep(150);
-  }
-  
-  process.stdout.write('\x1b[40m\x1b[2J\x1b[H'); // Clear entirely
+  process.stdout.write('\x1b[0m\x1b[2J\x1b[H'); // Clear entirely
   isBooting = false;
   drawFooter();
   console.log(`\x1b[46m\x1b[37m 🎬 KEPOIN CINEMATIC REPLAY ENGINE \x1b[0m`);
@@ -107,9 +92,13 @@ async function playAnomalyAnimation() {
   const msg = " 💥 ANOMALY DETECTED 💥 ";
   process.stdout.write(`\x1b[${Math.floor(rows/2)};${Math.floor((cols-msg.length)/2)}H\x1b[41m\x1b[37m\x1b[1m${msg}\x1b[0m`);
   
-  await sleep(600);
+  // Play the Terminal Bell 3 times
+  for (let i = 0; i < 3; i++) {
+    process.stdout.write('\x07');
+    await sleep(200);
+  }
   
-  process.stdout.write('\x1b[40m\x1b[2J\x1b[H'); // Black background clear
+  process.stdout.write('\x1b[0m\x1b[2J\x1b[H'); // Reset background clear
   for (const bufferedLine of slidingBuffer) {
     console.log(bufferedLine);
   }
