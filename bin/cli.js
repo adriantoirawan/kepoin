@@ -425,6 +425,7 @@ function printBanner(updateMessage) {
   console.log(`\x1b[36m[kepoin:info]\x1b[0m Bugs: https://github.com/adriantoirawan/kepoin/issues`);
   console.log(`\x1b[33m[kepoin:tip]\x1b[0m \x1b[35mkepoin is deeply forensic. Active tracing in production involves performance & security tradeoffs.\x1b[0m`);
   console.log(`\x1b[33m[kepoin:tip]\x1b[0m Read the analysis: \x1b[34mhttps://github.com/adriantoirawan/kepoin/blob/main/docs/reference/production-tradeoffs.md\x1b[0m`);
+  console.log(`\x1b[36m[kepoin:info]\x1b[0m Legend: \x1b[90m[Time/Count] │\x1b[0m \x1b[36m[#CallID]\x1b[0m [./relative/path.js] \x1b[36m▶ Status:\x1b[0m targetFunction \x1b[90m(called by Caller)\x1b[0m`);
   console.log(); // Blank line for padding
 }
 

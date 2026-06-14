@@ -203,7 +203,15 @@ function formatAnsi(payload) {
   
   const idPrefix = callId ? `\x1b[36m[#${callId}]\x1b[0m ` : '';
   const gutterStr = `\x1b[90m${consoleTrace}\x1b[0m `;
-  const locationStr = `[${location || 'unknown'}]`;
+
+  let relativeLocation = location;
+  if (location && path.isAbsolute(location)) {
+    const rel = path.relative(process.cwd(), location);
+    if (!rel.startsWith('..')) {
+      relativeLocation = './' + rel;
+    }
+  }
+  const locationStr = `[${relativeLocation || 'unknown'}]`;
   // Calculate visual length of idPrefix without ANSI codes
   const idPrefixRawLen = callId ? `[#${callId}] `.length : 0;
   const paddingStr = ' '.repeat(locationStr.length + idPrefixRawLen + 1);
