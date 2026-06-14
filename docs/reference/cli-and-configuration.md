@@ -20,6 +20,7 @@
 | `--max-depth` | Integer | **Override serialization depth.** Default is 4. Increase this if you need to see deeper into nested objects, or decrease to save memory. |
 | `--redact` | Comma-separated strings | **Custom Redaction Dictionary.** Add extra object keys that should be scrubbed from the logs. Example: `--redact="api_key,ssn"` |
 | `--verbose` | None | **Diagnostic Mode.** Prints internal `kepoin` logs showing exactly which modules and functions are being proxied. |
+| `--show-tracing-faults`, `-stf` | None | **Debug Tracing Engine.** Includes internal Kepoin proxy faults in terminal trace output. |
 | `--disable` | None | **The Hard Kill Switch.** Bypasses all tracing entirely. Acts as a pure passthrough with 0% performance penalty. |
 | `--examples` | None | Lists interactive examples bundled with the package. |
 | `--init-examples` | None | Safely copies the interactive examples suite into your current project for local testing. |
@@ -36,6 +37,7 @@ Every CLI flag can be controlled via Environment Variables. This is perfect for 
 * `KEPOIN_REDACT_KEYS` ➔ Maps to `--redact`
 * `KEPOIN_VERBOSE` ➔ Maps to `--verbose`
 * `KEPOIN_ENABLED` ➔ Maps to `--disable` (when set to `false`)
+* `KEPOIN_SHOW_TRACING_FAULTS` ➔ Maps to `--show-tracing-faults` (`-stf`)
 
 ## Persistent Configuration (`kepoin.json`)
 
@@ -49,7 +51,8 @@ For teams that want to commit custom security dictionaries to source control, cr
   "format": "ansi",
   "redactKeys": ["my_custom_internal_token", "aws_access_key"],
   "maxDepth": 5,
-  "slowThreshold": 100
+  "slowThreshold": 100,
+  "showTracingFaults": false
 }
 ```
 

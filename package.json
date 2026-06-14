@@ -1,8 +1,9 @@
 {
   "name": "kepoin",
-  "version": "0.2.12-beta.1",
+  "version": "0.2.12-beta.10",
   "description": "Zero-config forensic telemetry for Node.js and Node-based Mobile apps (React Native/Expo). Automatically trace execution, benchmark performance, and generate memory autopsies on crash, without changing a line of your code.",
   "type": "module",
+  "types": "./src/index.d.ts",
   "main": "./src/index.js",
   "bin": {
     "kepoin": "bin/cli.js"
@@ -56,5 +57,9 @@
   },
   "dependencies": {
     "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
   }
 }

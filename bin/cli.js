@@ -42,6 +42,9 @@ function printUsage() {
   \x1b[90m# Trace local development in the terminal\x1b[0m
   $ kepoin server.js
 
+  \x1b[90m# Zero-Config trace a TypeScript project (via tsx)\x1b[0m
+  $ node --require kepoin/register --import tsx server.ts
+
   \x1b[90m# Hunt for bottlenecks and stream human-readable traces to a directory\x1b[0m
   $ kepoin --spill-dir=./logs --slow=50 server.js
 
@@ -85,6 +88,7 @@ function printHelp() {
   --verbose         Print diagnostic internal kepoin logs.
   --disable         Hard kill switch. Bypasses all tracing with 0% performance penalty.
   --ws-port=<port>  (Hub Mode) Port for the WebSocket server (default: 54321).
+  --show-tracing-faults, -stf  Include internal kepoin proxy faults in terminal trace output.
   --examples        List interactive examples bundled with kepoin.
   --init-examples   Copy interactive examples to ./kepoin-examples/ in your current directory.
   -h, --help        Show this help message.
@@ -100,10 +104,14 @@ function printHelp() {
   \x1b[36mKEPOIN_REDACT_KEYS\x1b[0m    ➔ Maps to \x1b[33m--redact\x1b[0m
   \x1b[36mKEPOIN_VERBOSE\x1b[0m        ➔ Maps to \x1b[33m--verbose\x1b[0m
   \x1b[36mKEPOIN_ENABLED\x1b[0m        ➔ Maps to \x1b[33m--disable\x1b[0m (when set to 'false')
+  \x1b[36mKEPOIN_SHOW_TRACING_FAULTS\x1b[0m ➔ Maps to \x1b[33m--show-tracing-faults (-stf)\x1b[0m
 
 \x1b[1mEXAMPLE COMMANDS\x1b[0m
   \x1b[90m# Trace local development in the terminal\x1b[0m
   $ kepoin server.js
+
+  \x1b[90m# Zero-Config trace a TypeScript project (via tsx)\x1b[0m
+  $ node --require kepoin/register --import tsx server.ts
 
   \x1b[90m# Hunt for performance bottlenecks (only log methods taking > 50ms)\x1b[0m
   $ kepoin --out=trace.jsonl --slow=50 server.js
@@ -158,6 +166,11 @@ Then you can open the files to review the code and run them:
    Demonstrates kepoin's graceful fallback when encountering a malformed \`kepoin.json\`
    file, issuing a gentle warning instead of crashing the process.
    \x1b[33mCommand:\x1b[0m cd kepoin-examples/04-corrupted-config && npx kepoin demo.js
+
+\x1b[1m6. TypeScript Support & Diagnostics Engine\x1b[0m
+   Demonstrates Surgical Tracing in TypeScript, complete with IntelliSense, 
+   while actively triggering the Local Diagnostics Engine on an anomaly.
+   \x1b[33mCommand:\x1b[0m cd kepoin-examples/07-typescript-support && npx tsx demo.ts
 `);
 }
 
@@ -189,7 +202,24 @@ if (args.includes('--init-examples')) {
     process.exit(1);
   }
   fs.cpSync(sourceDir, destDir, { recursive: true });
+  
+  const pkgJson = {
+    name: "kepoin-examples",
+    version: "1.0.0",
+    description: "Interactive examples for Kepoin",
+    type: "module",
+    dependencies: {
+      "kepoin": "latest"
+    },
+    devDependencies: {
+      "tsx": "^4.22.4",
+      "typescript": "^6.0.3"
+    }
+  };
+  fs.writeFileSync(path.join(destDir, 'package.json'), JSON.stringify(pkgJson, null, 2));
+
   console.log(`\x1b[32m[kepoin:success]\x1b[0m Examples successfully copied to \x1b[1m./kepoin-examples/\x1b[0m`);
+  console.log(`\x1b[33m[kepoin:tip]\x1b[0m Run \x1b[1mcd kepoin-examples && npm install\x1b[0m to install dependencies for the Surgical Tracing and TypeScript demos.`);
   console.log(`Run \x1b[36mkepoin --examples\x1b[0m to see the commands to run them!`);
   process.exit(0);
 }
@@ -199,7 +229,7 @@ if (args.includes('-v') || args.includes('--version')) {
   process.exit(0);
 }
 
-const KEPOIN_FLAGS = ['--log-dir', '-ld', '--spill-dir', '-sd', '--format', '--slow', '--max-depth', '--redact', '--verbose', '--disable', '--ws-port', '--examples', '--init-examples', '--help', '--version', '-h', '-v'];
+const KEPOIN_FLAGS = ['--log-dir', '-ld', '--spill-dir', '-sd', '--format', '--slow', '--max-depth', '--redact', '--verbose', '--disable', '--ws-port', '--examples', '--init-examples', '--help', '--version', '-h', '-v', '--show-tracing-faults', '-stf'];
 
 function levenshtein(a, b) {
   const matrix = [];
@@ -281,6 +311,11 @@ for (let i = 0; i < args.length; i++) {
     }
     if (arg.startsWith('--ws-port=')) {
       envVars.KEPOIN_WS_PORT = arg.split('=')[1];
+      providedKepoinFlags.push(arg);
+      continue;
+    }
+    if (arg === '--show-tracing-faults' || arg === '-stf') {
+      envVars.KEPOIN_SHOW_TRACING_FAULTS = 'true';
       providedKepoinFlags.push(arg);
       continue;
     }
@@ -425,7 +460,7 @@ function printBanner(updateMessage) {
   console.log(`\x1b[36m[kepoin:info]\x1b[0m Bugs: https://github.com/adriantoirawan/kepoin/issues`);
   console.log(`\x1b[33m[kepoin:tip]\x1b[0m \x1b[35mkepoin is deeply forensic. Active tracing in production involves performance & security tradeoffs.\x1b[0m`);
   console.log(`\x1b[33m[kepoin:tip]\x1b[0m Read the analysis: \x1b[34mhttps://github.com/adriantoirawan/kepoin/blob/main/docs/reference/production-tradeoffs.md\x1b[0m`);
-  console.log(`\x1b[36m[kepoin:info]\x1b[0m Legend: \x1b[90m[Time/Count] │\x1b[0m \x1b[36m[#CallID]\x1b[0m [./relative/path.js] \x1b[36m▶ Status:\x1b[0m targetFunction \x1b[90m(called by Caller)\x1b[0m`);
+  console.log(`\x1b[36m[kepoin:info]\x1b[0m Diagnostics: Active (Heuristics Engine enabled)`);
   console.log(); // Blank line for padding
 }
 

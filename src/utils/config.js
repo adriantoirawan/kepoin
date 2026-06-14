@@ -42,6 +42,7 @@ export function getConfig() {
   const format = env.KEPOIN_FORMAT || fileConfig.format || 'ansi';
   const maxDepth = parseInt(env.KEPOIN_MAX_DEPTH, 10) || fileConfig.maxDepth || 4;
   const slowThreshold = parseInt(env.KEPOIN_SLOW_THRESHOLD, 10) || fileConfig.slowThreshold || 0;
+  const showTracingFaults = env.KEPOIN_SHOW_TRACING_FAULTS === 'true' || fileConfig.showTracingFaults === true;
   
   const wsPort = parseInt(env.KEPOIN_WS_PORT, 10) || fileConfig.wsPort || 54321;
   
@@ -61,8 +62,9 @@ export function getConfig() {
     format,
     maxDepth,
     slowThreshold,
+    wsPort,
     redactKeys,
-    wsPort
+    showTracingFaults
   };
 
   return configCache;

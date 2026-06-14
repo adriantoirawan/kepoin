@@ -24,6 +24,10 @@ function shouldProxy(id) {
  * Overrides CommonJS require to natively intercept and wrap modules.
  */
 Module.prototype.require = function(id) {
+  if (id === 'kepoin') {
+    return originalRequire.call(this, path.join(import.meta.dirname, '../index.cjs'));
+  }
+
   const exportsObj = originalRequire.apply(this, arguments);
 
   const config = getConfig();

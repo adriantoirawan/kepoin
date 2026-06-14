@@ -274,10 +274,12 @@ export async function startReplay(filePath) {
     } else if (line.includes('✖ Failed:')) {
       line = line.replace('✖ Failed:', '\x1b[31m✖ Failed:\x1b[0m');
       isAnomaly = true;
-    } else if (line.includes('Arguments:')) {
-      line = line.replace('Arguments:', '\x1b[33mArguments:\x1b[0m');
+    } else if (line.includes('Values passed to function:')) {
+      line = line.replace('Values passed to function:', '\x1b[33mValues passed to function:\x1b[0m');
     } else if (line.includes('Code Context:')) {
       line = line.replace('Code Context:', '\x1b[33mCode Context:\x1b[0m');
+    } else if (line.includes('💡 Diagnostic Hint:')) {
+      line = line.replace(/(💡 Diagnostic Hint:) (.+)/, '\x1b[35m$1\x1b[0m \x1b[3m$2\x1b[0m');
     } else if (line.match(/> \s*\d+ \|/)) {
       line = line.replace(/(> \s*\d+ \| .+)/, '\x1b[31m$1\x1b[0m');
     } else if (line.match(/  \s*\d+ \|/)) {

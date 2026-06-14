@@ -27,11 +27,14 @@ When debugging distributed clusters or multi-day test runs, developers can dump 
 
 Features a full hardware-accelerated **`nano`-style terminal interface** where you can smoothly auto-play thousands of traces, interactively toggle speeds, and experience "Bullet Time" cinematic blasts when an anomaly crashes the trace!
 
-### 3. V8 Lexical Scope Scraper (Backend)
+### 3. The Local Diagnostics Engine
 Standard Node.js crash traces tell you *where* the app died. `kepoin` tells you *why*.
+When an anomaly occurs, Kepoin parses the raw arguments natively (e.g. `Values passed to function: arg1 (string): "hello"`), extracts a 5-line source code snippet pointing directly to the failure, and runs a heuristic Regex engine to provide a **💡 Diagnostic Hint** translating `TypeError` and `ReferenceError` into plain English.
+
+### 4. V8 Lexical Scope Scraper (Backend)
 By booting with `--require kepoin/register`, our engine programmatically hooks into `node:inspector` upon crashing, safely dumping the **local variables and lexical scope** mapped to the exact line of failure.
 
-### 4. Mobile App Crash Bridges
+### 5. Mobile App Crash Bridges
 
 > [!WARNING]
 > **Experimental:** Mobile support is currently experimental and subject to change.
@@ -93,7 +96,15 @@ NODE_OPTIONS="--require kepoin/register" npm run start
 > [!NOTE]
 > **The Module Boundary:** To maintain 0% performance overhead, `kepoin` operates by wrapping your `module.exports`. This means it only traces **exported functions** that are imported and called from **another file**. It does *not* trace local function calls executing internally within the same file.
 
-### 3. Injecting into Mobile (React Native/Expo)
+### 3. Zero-Config Tracing with TypeScript
+Kepoin fully supports TypeScript, out-of-the-box, without changing your compilation pipeline. If you use `tsx` (the modern standard for Node+TypeScript), simply inject both loaders simultaneously:
+```bash
+node --require kepoin/register --import tsx server.ts
+```
+Because `tsx` handles source-maps automatically, Kepoin's crash autopsies will seamlessly point to your original `.ts` files!
+We also ship `src/index.d.ts` for developers who want to use **Surgical Tracing** (`import { kepoin } from 'kepoin'`) natively in their typed stack.
+
+### 4. Injecting into Mobile (React Native/Expo)
 
 > [!WARNING]
 > **Experimental:** Mobile support is currently experimental and subject to change.
@@ -121,6 +132,7 @@ When running `kepoin <script.js>` or `kepoin listen`, you can pass the following
 | `--max-depth=<N>` | Integer | **Override serialization depth.** Default is 4. |
 | `--redact=<keys>` | Strings | **Custom Redaction Dictionary.** Add extra keys to scrub. |
 | `--disable` | None | **The Hard Kill Switch.** Bypasses all tracing entirely. |
+| `--show-tracing-faults` | None | **Debug Tracing Engine.** Includes internal Kepoin proxy faults in terminal trace output. |
 | `--examples` | None | Lists interactive examples bundled with the package. |
 | `--init-examples`| None | Extracts interactive examples to your local project. |
 

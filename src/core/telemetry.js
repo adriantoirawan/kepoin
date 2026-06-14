@@ -1,4 +1,6 @@
 import { performance } from 'node:perf_hooks';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { logEvent, verboseLog, extractSourceSnippet } from '../utils/logger.js';
 import { getConfig } from '../utils/config.js';
 
@@ -38,6 +40,34 @@ function extractCallerInfo(stackObj) {
 }
 
 /**
+ * Safely stringifies an argument value with a strict length limit.
+ */
+function safeStringify(val) {
+  try {
+    const str = JSON.stringify(val);
+    if (str && str.length > 50) return str.substring(0, 50) + '...';
+    return str || 'undefined';
+  } catch (err) {
+    return '[Unserializable]';
+  }
+}
+
+/**
+ * Formats a list of arguments into a clean multi-line breakdown with types.
+ * @param {Array} args The arguments array.
+ * @returns {string} The formatted arguments breakdown.
+ */
+function formatArguments(args) {
+  if (!args || args.length === 0) return 'None';
+  return args.map((arg, idx) => {
+    let type = typeof arg;
+    if (Array.isArray(arg)) type = 'Array';
+    if (arg === null) type = 'null';
+    return `• arg${idx + 1} (${type}) : ${safeStringify(arg)}`;
+  }).join('\n');
+}
+
+/**
  * Wraps a target object, class, or function in an ES6 Proxy to passively observe execution.
  *
  * @param {any} target The target to observe
@@ -48,6 +78,15 @@ function extractCallerInfo(stackObj) {
 export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
   const config = getConfig();
   if (!config.enabled) return target;
+
+  let sanitizedLocation = location;
+  if (typeof location === 'string' && location.startsWith('file://')) {
+    try {
+      sanitizedLocation = './' + path.relative(process.cwd(), fileURLToPath(location));
+    } catch (e) {
+      // Ignore URL parsing errors
+    }
+  }
 
   if (target === null || (typeof target !== 'object' && typeof target !== 'function')) {
     return target;
@@ -84,20 +123,22 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
       }
 
       if (typeof value === 'function') {
-        return kepoin(value, `${name}.${prop.toString()}`, location);
+        return kepoin(value, `${name}.${prop.toString()}`, sanitizedLocation);
       }
-      return value;
+      return kepoin(value, `${name}.${prop.toString()}`, sanitizedLocation);
     },
 
-    apply(obj, thisArg, args) {
+    apply(fn, thisArg, args) {
       const callId = ++callIdCounter;
       const startTime = performance.now();
+      
+      verboseLog(`[telemetry] Intercepted call to ${name}`);
       const callerInfo = extractCallerInfo();
       
       if (config.slowThreshold === 0) {
         logEvent({
           callId,
-          location,
+          location: sanitizedLocation,
           target: name,
           status: 'Executing',
           caller: callerInfo ? callerInfo.formatted : null,
@@ -107,7 +148,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
 
       try {
         // We use the raw object if we're a proxy to avoid receiver issues in methods
-        const rawObj = obj[RAW_TARGET] || obj;
+        const rawObj = fn[RAW_TARGET] || fn;
         const rawThis = thisArg && thisArg[RAW_TARGET] ? thisArg[RAW_TARGET] : thisArg;
         
         const result = Reflect.apply(rawObj, rawThis, args);
@@ -119,7 +160,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
               if (duration >= config.slowThreshold) {
                 logEvent({
                   callId,
-                  location,
+                  location: sanitizedLocation,
                   target: name,
                   status: 'Resolved',
                   duration
@@ -132,18 +173,18 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
               if (duration >= config.slowThreshold) {
                 const errCaller = extractCallerInfo(err);
                 const snippet = errCaller ? extractSourceSnippet(errCaller.file, errCaller.line) : null;
-                let argsDump;
-                try { argsDump = JSON.stringify(args); } catch (e) { argsDump = '[Circular or Unserializable]'; }
+                const argsDump = formatArguments(args);
                 
                 logEvent({
                   callId,
-                  location,
+                  location: sanitizedLocation,
                   target: name,
                   status: 'Failed',
                   duration,
                   argsDump,
                   sourceSnippet: snippet,
-                  error: err ? err.message : 'Unknown Promise Rejection'
+                  error: err ? err.toString() : 'Unknown Promise Rejection',
+                  stack: err ? err.stack : undefined
                 });
               }
               // Do not rethrow here, we are just side-effecting. The original promise throws to the user.
@@ -154,7 +195,7 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
           if (duration >= config.slowThreshold) {
             logEvent({
               callId,
-              location,
+              location: sanitizedLocation,
               target: name,
               status: 'Resolved',
               duration
@@ -163,25 +204,25 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
         }
         
         // Wrap the result if it's an object/function
-        return kepoin(result, `${name}()`, location);
+        return kepoin(result, `${name}()`, sanitizedLocation);
 
       } catch (err) {
         const duration = performance.now() - startTime;
         if (duration >= config.slowThreshold) {
           const errCaller = extractCallerInfo(err);
           const snippet = errCaller ? extractSourceSnippet(errCaller.file, errCaller.line) : null;
-          let argsDump;
-          try { argsDump = JSON.stringify(args); } catch (e) { argsDump = '[Circular or Unserializable]'; }
+          const argsDump = formatArguments(args);
 
           logEvent({
             callId,
-            location,
+            location: sanitizedLocation,
             target: name,
             status: 'Failed',
             duration,
             argsDump,
             sourceSnippet: snippet,
-            error: err ? err.message : 'Unknown Synchronous Error'
+            error: err ? err.toString() : 'Unknown Error',
+            stack: err ? err.stack : undefined
           });
         }
         throw err;
@@ -226,7 +267,8 @@ export function kepoin(target, name = 'Anonymous', location = 'Unknown') {
             target: name,
             status: 'Failed',
             duration,
-            error: err ? err.message : 'Unknown Constructor Error'
+            error: err ? err.message : 'Unknown Constructor Error',
+            stack: err ? err.stack : undefined
           });
         }
         throw err;
