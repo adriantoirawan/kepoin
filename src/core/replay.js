@@ -3,12 +3,15 @@ import readline from 'node:readline';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-let state = 'PLAYING'; // PAUSED, PLAYING, PAGINATE, SKIP
+let state = 'PLAYING'; // PAUSED, PLAYING, PAGINATE, SKIP, SCROLLING
 let previousState = 'PLAYING';
 let speedDelay = 100; // ms per line during Auto-Play
 let bulletTimeLines = 0; // Countdown for Matrix slow-mo
 let linesPrintedSincePause = 0;
 const slidingBuffer = []; // Circular buffer for Time-Skip feature
+const historyBuffer = [];
+const MAX_HISTORY = 50000;
+let scrollOffset = 0;
 let isBooting = true;
 let skipBoot = false;
 let footerMsg = null;
@@ -77,6 +80,23 @@ function showFooterAlert(msg, ms = 3000) {
   }, ms);
 }
 
+function renderScrollback() {
+  const rows = process.stdout.rows || 24;
+  const canvasHeight = Math.max(1, rows - 2);
+  const startIndex = Math.max(0, historyBuffer.length - canvasHeight - scrollOffset);
+  const slice = historyBuffer.slice(startIndex, startIndex + canvasHeight);
+  
+  process.stdout.write('\x1b7'); // Save cursor
+  process.stdout.write('\x1b[1;1H'); // Move to top-left
+  
+  for (let i = 0; i < canvasHeight; i++) {
+    const line = slice[i] || '';
+    process.stdout.write(line + '\x1b[K' + (i < canvasHeight - 1 ? '\n' : ''));
+  }
+  
+  process.stdout.write('\x1b8'); // Restore cursor
+}
+
 async function playBootAnimation(filePath) {
   process.stdout.write('\x1b[0m\x1b[2J\x1b[H'); // Clear entirely
   isBooting = false;
@@ -136,22 +156,65 @@ export async function startReplay(filePath) {
       }
 
       if (key === ' ') {
-        if (state === 'PAUSED') {
-          state = 'PLAYING';
+        if (state === 'PAUSED' || state === 'SCROLLING') {
+          scrollOffset = 0;
+          state = state === 'SCROLLING' ? previousState : 'PLAYING';
+          if (state === 'PLAYING') renderScrollback();
         } else {
           state = 'PAUSED';
         }
         drawFooter();
       } else if (key === 'n') {
         if (state !== 'PAGINATE') {
-          previousState = state;
+          if (state !== 'SCROLLING') previousState = state;
+          scrollOffset = 0;
           state = 'PAGINATE';
           linesPrintedSincePause = 0;
+          renderScrollback();
         }
         drawFooter();
       } else if (key === 's') {
+        scrollOffset = 0;
         state = 'SKIP';
         drawFooter();
+      } else if (key === '\u001b[a') { // Up Arrow
+        if (state !== 'SCROLLING') {
+          previousState = state;
+          state = 'SCROLLING';
+        }
+        const rows = process.stdout.rows || 24;
+        scrollOffset = Math.min(historyBuffer.length - Math.max(1, rows - 2), scrollOffset + 1);
+        renderScrollback();
+        drawFooter();
+      } else if (key === '\u001b[b') { // Down Arrow
+        if (state === 'SCROLLING') {
+          if (scrollOffset === 0) {
+            process.stdout.write('\x07');
+            showFooterAlert('ALREADY AT THE LATEST LOG LINE');
+          } else {
+            scrollOffset = Math.max(0, scrollOffset - 1);
+            renderScrollback();
+          }
+        }
+      } else if (key === '\u001b[5~') { // Page Up
+        if (state !== 'SCROLLING') {
+          previousState = state;
+          state = 'SCROLLING';
+        }
+        const rows = process.stdout.rows || 24;
+        scrollOffset = Math.min(historyBuffer.length - Math.max(1, rows - 2), scrollOffset + Math.max(1, rows - 2));
+        renderScrollback();
+        drawFooter();
+      } else if (key === '\u001b[6~') { // Page Down
+        if (state === 'SCROLLING') {
+          const rows = process.stdout.rows || 24;
+          scrollOffset = Math.max(0, scrollOffset - Math.max(1, rows - 2));
+          renderScrollback();
+          if (scrollOffset === 0) {
+            process.stdout.write('\x07');
+            showFooterAlert('ALREADY AT THE LATEST LOG LINE');
+          }
+        }
       } else if (key === '+' || key === '=') {
         speedDelay = Math.max(10, speedDelay - 30);
         drawFooter();
@@ -197,6 +260,11 @@ export async function startReplay(filePath) {
     if (slidingBuffer.length > 10) {
       slidingBuffer.shift();
     }
+    
+    historyBuffer.push(line);
+    if (historyBuffer.length > MAX_HISTORY) {
+      historyBuffer.shift();
+    }
 
     if (state === 'SKIP') {
       if (isAnomaly) {
@@ -208,7 +276,9 @@ export async function startReplay(filePath) {
       continue; // Silently fast-forward if no anomaly
     }
 
-    console.log(line);
+    if (state !== 'SCROLLING') {
+      console.log(line);
+    }
 
     if (isAnomaly && state !== 'SKIP') {
       bulletTimeLines = 10;
@@ -231,8 +301,8 @@ export async function startReplay(filePath) {
       }
     }
 
-    // Yield control loop if Paused
-    while (state === 'PAUSED') {
+    // Yield control loop if Paused or Scrolling
+    while (state === 'PAUSED' || state === 'SCROLLING') {
       await sleep(50);
     }
   }
